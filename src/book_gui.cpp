@@ -116,12 +116,12 @@ void BookGui::setup_plots() {
 
     m_price_plot->legend->setVisible(false);
 
-   // m_price_plot->setOpenGl(true);
+    // m_price_plot->setOpenGl(true);
     //m_pnl_plot->setOpenGl(true);
 
     m_bid_graph->setAdaptiveSampling(true);
     m_ask_graph->setAdaptiveSampling(true);
-   // m_pnl_graph->setAdaptiveSampling(true);
+    // m_pnl_graph->setAdaptiveSampling(true);
 
     m_price_plot->setNotAntialiasedElements(QCP::aeAll);
 
