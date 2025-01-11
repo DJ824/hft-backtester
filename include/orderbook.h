@@ -14,6 +14,7 @@
 #include "order_pool.h"
 #include "message.h"
 #include "database.h"
+#include "lookup_table/lookup_table.h"
 
 
 template<bool Side>
@@ -71,7 +72,8 @@ public:
     bool update_possible = false;
     BookSide<true>::MapType bids_;
     BookSide<false>::MapType offers_;
-    std::unordered_map<uint64_t, Order *> order_lookup_;
+    //std::unordered_map<uint64_t, Order *> order_lookup_;
+    OpenAddressTable order_lookup_;
     std::chrono::system_clock::time_point current_message_time_;
     double vwap_, sum1_, sum2_;
     float skew_, bid_depth_, ask_depth_;
