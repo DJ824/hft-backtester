@@ -65,7 +65,7 @@ void Orderbook::add_limit_order(uint64_t id, int32_t price, uint32_t size, uint6
     new_order->unix_time_ = unix_time;
 
     Limit* curr_limit = get_or_insert_limit<Side>(price);
-    order_lookup_[id] = new_order;
+    order_lookup_.insert(id, new_order);
     curr_limit->add_order(new_order);
 
     if constexpr (Side) {
@@ -80,7 +80,7 @@ void Orderbook::add_limit_order(uint64_t id, int32_t price, uint32_t size, uint6
 
 template<bool Side>
 void Orderbook::remove_order(uint64_t id, int32_t price, uint32_t size) {
-    auto target = order_lookup_[id];
+    auto target = *order_lookup_.find(id);
     auto curr_limit = target->parent_;
     order_lookup_.erase(id);
     curr_limit->remove_order(target);
@@ -104,12 +104,12 @@ void Orderbook::remove_order(uint64_t id, int32_t price, uint32_t size) {
 
 template<bool Side>
 void Orderbook::modify_order(uint64_t id, int32_t new_price, uint32_t new_size, uint64_t unix_time) {
-    if (order_lookup_.find(id) == order_lookup_.end()) {
+    Order** target_ptr = order_lookup_.find(id);
+    if (!target_ptr) {
         add_limit_order<Side>(id, new_price, new_size, unix_time);
-        return;
     }
 
-    Order* target = order_lookup_[id];
+    auto target = *target_ptr;
     auto prev_price = target->price_;
     auto prev_limit = target->parent_;
     auto prev_size = target->size;
