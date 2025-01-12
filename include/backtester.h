@@ -33,6 +33,7 @@ public slots:
     void stop_backtest();
     void restart_backtest();
     void handleStartSignal();
+    void on_strategy_changed(const QString& strategy_name, bool requires_fitting);
 
 private slots:
     void run_backtest();
@@ -47,13 +48,14 @@ signals:
     void update_orderbook_stats(double vwap, double imbalance, const QString& current_time, int32_t pnl);
 
 private:
+    void create_strategy(const QString& strategy_name);
     static constexpr int cooldown_ = 30;
     QTimer *backtest_timer_;
     std::shared_ptr<Orderbook> book_;
     std::unique_ptr<Orderbook> train_book_;
     size_t train_message_index_;
 
-    std::vector<std::unique_ptr<Strategy>> strategies_;
+    std::unique_ptr<Strategy> strategy_;
     DatabaseManager& db_manager_;
     bool first_update_;
     size_t current_message_index_;
@@ -66,6 +68,7 @@ private:
     const std::string train_start_time_ = "2024-05-28 09:30:00.000";
     const std::string train_end_time_ = "2024-05-28 16:00:00.000";
     QThread worker_thread_;
+    bool requires_fitting_;
 
     void update_gui();
     void process_message(const message& msg);

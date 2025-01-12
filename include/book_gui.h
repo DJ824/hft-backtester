@@ -31,6 +31,7 @@ signals:
     void start_backtest();
     void stop_backtest();
     void restart_backtest();
+    void strategy_changed(const QString& strategy_name, bool requires_fitting);
 
 private:
     InteractivePlot *m_price_plot;
@@ -48,6 +49,7 @@ private:
     QPushButton *m_stop_button;
     QPushButton *m_restart_button;
     QPushButton *m_chart_toggle_button;
+    QComboBox *m_strategy_selector;
     bool m_charts_enabled;
     QProgressBar *m_progress_bar;
     QTableWidget *m_trade_log_table;
@@ -71,6 +73,7 @@ private:
     void update_scroll_bar();
     void style_plot(QCustomPlot *plot);
     void clear_data();
+    void setup_strategy_selector();
 
 private slots:
     void handle_horizontal_scroll_bar_value_changes(int value);
