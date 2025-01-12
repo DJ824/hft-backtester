@@ -34,12 +34,8 @@ struct BookSide<false> {
     //static constexpr bool is_bid = false;
 };
 
-
-
-
 class Orderbook {
 private:
-
 
     DatabaseManager &db_manager_;
     OrderPool order_pool_;

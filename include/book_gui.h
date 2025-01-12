@@ -25,7 +25,7 @@ public slots:
     void log_trade(const QString& timestamp, bool is_buy, int32_t price);
     void on_backtest_finished();
     void on_backtest_error(const QString& error_message);
-    void update_orderbook_stats(double vwap, double imbalance, const QString& current_time);
+    void update_orderbook_stats(double vwap, double imbalance, const QString& current_time, int32_t pnl);
 
 signals:
     void start_backtest();
@@ -47,6 +47,8 @@ private:
     QPushButton *m_start_button;
     QPushButton *m_stop_button;
     QPushButton *m_restart_button;
+    QPushButton *m_chart_toggle_button;
+    bool m_charts_enabled;
     QProgressBar *m_progress_bar;
     QTableWidget *m_trade_log_table;
     QTableWidget *m_orderbook_stats_table;

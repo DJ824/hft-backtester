@@ -20,11 +20,12 @@ Q_OBJECT
 
 public:
     explicit Backtester(DatabaseManager& db_manager,
-                        const std::vector<message>& messages, const std::vector<message>& train_messages, QObject* parent = nullptr);
+                        const std::vector<message>& messages,
+                        const std::vector<message>& train_messages,
+                        QObject* parent = nullptr);
     ~Backtester() override;
 
     void add_strategy(std::unique_ptr<Strategy> strategy);
-
     void train_model();
 
 public slots:
@@ -43,7 +44,7 @@ signals:
     void trade_executed(const QString& timestamp, bool is_buy, int32_t price);
     void update_chart(qint64 timestamp, double bestBid, double bestAsk, int32_t pnl);
     void backtest_error(const QString& error_message);
-    void update_orderbook_stats(double vwap, double imbalance, const QString& current_time);
+    void update_orderbook_stats(double vwap, double imbalance, const QString& current_time, int32_t pnl);
 
 private:
     static constexpr int cooldown_ = 30;
