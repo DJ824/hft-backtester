@@ -113,6 +113,10 @@ int main(int argc, char *argv[]) {
                          backtester, &Backtester::restart_backtest,
                          Qt::QueuedConnection);
 
+        QObject::connect(gui, &BookGui::strategy_changed,
+                         backtester, &Backtester::on_strategy_changed,
+                         Qt::QueuedConnection);
+
         qDebug() << "[Main] GUI initialized, starting event loop";
         return app.exec();
 
@@ -120,6 +124,4 @@ int main(int argc, char *argv[]) {
         qCritical() << "[Main] Fatal error:" << e.what();
         return 1;
     }
-
-    return app.exec();
 }

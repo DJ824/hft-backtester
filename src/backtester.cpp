@@ -5,9 +5,10 @@
 #include <iomanip>
 
 Backtester::Backtester(DatabaseManager &db_manager,
-                       const std::vector<message> &messages, const std::vector<message> &train_messages, QObject *parent)
+                       const std::vector<message> &messages, const std::vector<message> &train_messages,
+                       QObject *parent)
         : QObject(nullptr), db_manager_(db_manager), messages_(messages), train_messages_(train_messages),
-          first_update_(false), current_message_index_(0), running_(false) {
+          first_update_(false), current_message_index_(0), running_(false), requires_fitting_(false) {
 
     qDebug() << QTime::currentTime().toString("hh:mm:ss.zzz")
              << "[Backtester] Backtester constructed on thread:" << QThread::currentThreadId();
@@ -16,7 +17,7 @@ Backtester::Backtester(DatabaseManager &db_manager,
     connect(backtest_timer_, &QTimer::timeout, this, &Backtester::run_backtest);
     book_ = std::make_unique<Orderbook>(db_manager);
     train_book_ = std::make_unique<Orderbook>(db_manager);
-    strategies_.push_back(std::make_unique<LinearModelStrategy>(db_manager_, book_.get()));
+    //strategies_.push_back(std::make_unique<LinearModelStrategy>(db_manager_, book_.get()));
 }
 
 Backtester::~Backtester() {
@@ -26,6 +27,24 @@ Backtester::~Backtester() {
     }
 }
 
+void Backtester::create_strategy(const QString &strategy_name) {
+    strategy_ = nullptr;
+
+    if (strategy_name == "Linear Model Strategy") {
+        strategy_ = std::make_unique<LinearModelStrategy>(db_manager_, book_.get());
+    } else if (strategy_name == "Imbalance Strategy") {
+        strategy_ = std::make_unique<ImbalanceStrat>(db_manager_, book_.get());
+    }
+}
+
+void Backtester::on_strategy_changed(const QString& strategy_name, bool requires_fitting) {
+    //stop_backtest();
+    create_strategy(strategy_name);
+    requires_fitting_ = requires_fitting;
+
+    //reset_state();
+}
+
 void Backtester::train_model() {
     std::cout << "fitting model..." << std::endl;
 
@@ -33,7 +52,7 @@ void Backtester::train_model() {
     int64_t prev_seconds = 0;
     int ct = 0;
 
-    auto parse_time = [](const std::string& time_str) {
+    auto parse_time = [](const std::string &time_str) {
         int hour = (time_str[11] - '0') * 10 + (time_str[12] - '0');
         int minute = (time_str[14] - '0') * 10 + (time_str[15] - '0');
         int second = (time_str[17] - '0') * 10 + (time_str[18] - '0');
@@ -41,11 +60,11 @@ void Backtester::train_model() {
     };
 
     while (train_message_index_ < train_messages_.size()) {
-        const auto& msg = train_messages_[train_message_index_];
+        const auto &msg = train_messages_[train_message_index_];
         train_book_->process_msg(msg);
 
         std::string curr_time = train_book_->get_formatted_time_fast();
-       // std::cout << msg.id_ << std::endl;
+        // std::cout << msg.id_ << std::endl;
         int64_t curr_seconds = parse_time(curr_time);
 
         if (curr_time >= train_start_time_) {
@@ -72,8 +91,10 @@ void Backtester::train_model() {
     std::cout << book_->voi_history_.size() << std::endl;
     book_->mid_prices_ = std::move(train_book_->mid_prices_);
 
-    auto* linear_strategy = dynamic_cast<LinearModelStrategy*>(strategies_[0].get());
-    linear_strategy->fit_model();
+    if (strategy_->req_fitting_) {
+        auto *linear_strat = dynamic_cast<LinearModelStrategy *>(strategy_.get());
+        linear_strat->fit_model();
+    }
 
     std::cout << "model fitted, processed " << train_message_index_ << " messages." << std::endl;
 }
@@ -86,14 +107,31 @@ void Backtester::restart_backtest() {
 }
 
 void Backtester::reset_state() {
-    current_message_index_ = 0;
-    first_update_ = false;
-    book_ = std::make_shared<Orderbook>(db_manager_);
-    for (auto& strategy : strategies_) {
-        strategy = std::make_unique<ImbalanceStrat>(db_manager_, book_.get());
+    if (backtest_timer_->isActive()) {
+        backtest_timer_->stop();
     }
-}
+    running_ = false;
 
+    current_message_index_ = 0;
+    train_message_index_ = 0;
+    first_update_ = false;
+
+    book_ = std::make_shared<Orderbook>(db_manager_);
+    train_book_ = std::make_unique<Orderbook>(db_manager_);
+
+    QString current_strategy;
+    if (strategy_) {
+        if (dynamic_cast<LinearModelStrategy*>(strategy_.get())) {
+            current_strategy = "Linear Model Strategy";
+        } else if (dynamic_cast<ImbalanceStrat*>(strategy_.get())) {
+            current_strategy = "Imbalance Strategy";
+        }
+        strategy_.reset();
+        create_strategy(current_strategy);
+    }
+
+    qDebug() << "[Backtester] State has been reset";
+}
 
 void Backtester::handleStartSignal() {
     start_backtest();
@@ -104,6 +142,11 @@ void Backtester::start_backtest() {
              << "[Backtester] start_backtest called on thread:" << QThread::currentThreadId();
 
     if (!running_) {
+        if (requires_fitting_) {
+            qDebug() << "[Backtester] Training model...";
+            train_model();
+        }
+
         running_ = true;
         if (current_message_index_ == 0) {
             qDebug() << "[Backtester] Starting from the beginning...";
@@ -121,6 +164,7 @@ void Backtester::start_backtest() {
     }
 }
 
+
 void Backtester::stop_backtest() {
     log("stop_backtest called");
     if (backtest_timer_->isActive()) {
@@ -134,7 +178,7 @@ void Backtester::update_gui() {
     int32_t bid = book_->get_best_bid_price();
     int32_t ask = book_->get_best_ask_price();
     std::string time_string = book_->get_formatted_time_fast();
-    int32_t pnl = strategies_[0]->get_pnl();
+    int32_t pnl = strategy_->get_pnl();
 
     QDateTime date_time = QDateTime::fromString(QString::fromStdString(time_string), "yyyy-MM-dd HH:mm:ss.zzz");
     qint64 timestamp = date_time.toMSecsSinceEpoch();
@@ -163,7 +207,7 @@ void Backtester::run_backtest() {
     QElapsedTimer update_timer;
     update_timer.start();
 
-    auto parse_time = [](const std::string& time_str) {
+    auto parse_time = [](const std::string &time_str) {
         int hour = (time_str[11] - '0') * 10 + (time_str[12] - '0');
         int minute = (time_str[14] - '0') * 10 + (time_str[15] - '0');
         int second = (time_str[17] - '0') * 10 + (time_str[18] - '0');
@@ -206,34 +250,34 @@ void Backtester::run_backtest() {
 
             if (curr_seconds - prev_seconds >= 1) {
 
-                for (auto &strategy: strategies_) {
-                   // book_->calculate_vols();
-                    //book_->calculate_imbalance();
 
-                    /*
-                    if (curr_seconds - prev_trade >= 300 && strategy->get_position() != 0) {
-                        if (strategy->get_position() > 0) {
-                            strategy->execute_trade(false, book_->get_best_ask_price(), 1);
-                            strategy->trade_queue_.pop();
-                            emit trade_executed(QString::fromStdString(curr_time), false, book_->get_best_ask_price());
-                        } else if (strategy->get_position() < 0) {
-                            strategy->execute_trade(true, book_->get_best_ask_price(), 1);
-                            strategy->trade_queue_.pop();
-                            emit trade_executed(QString::fromStdString(curr_time), true, book_->get_best_bid_price());
+                // book_->calculate_vols();
+                //book_->calculate_imbalance();
 
-                        }
-                    }
-                    */
-
-                    strategy->on_book_update();
-
-                    while (!strategy->trade_queue_.empty()) {
-                        auto [is_buy, price] = strategy->trade_queue_.front();
+                /*
+                if (curr_seconds - prev_trade >= 300 && strategy->get_position() != 0) {
+                    if (strategy->get_position() > 0) {
+                        strategy->execute_trade(false, book_->get_best_ask_price(), 1);
                         strategy->trade_queue_.pop();
-                        emit trade_executed(QString::fromStdString(curr_time), is_buy, price);
-                        prev_trade = curr_seconds;
+                        emit trade_executed(QString::fromStdString(curr_time), false, book_->get_best_ask_price());
+                    } else if (strategy->get_position() < 0) {
+                        strategy->execute_trade(true, book_->get_best_ask_price(), 1);
+                        strategy->trade_queue_.pop();
+                        emit trade_executed(QString::fromStdString(curr_time), true, book_->get_best_bid_price());
+
                     }
                 }
+                */
+
+                strategy_->on_book_update();
+
+                while (!strategy_->trade_queue_.empty()) {
+                    auto [is_buy, price] = strategy_->trade_queue_.front();
+                    strategy_->trade_queue_.pop();
+                    emit trade_executed(QString::fromStdString(curr_time), is_buy, price);
+                    prev_trade = curr_seconds;
+                }
+
 
                 prev_seconds = curr_seconds;
             }
@@ -264,11 +308,11 @@ void Backtester::run_backtest() {
 
     emit update_progress(100);
 
-    for (const auto &strategy: strategies_) {
-        log(QString("Strategy PNL: %1, Final position: %2")
-                    .arg(strategy->get_pnl())
-                    .arg(strategy->get_position()));
-    }
+
+    log(QString("Strategy PNL: %1, Final position: %2")
+                .arg(strategy_->get_pnl())
+                .arg(strategy_->get_position()));
+
 
     running_ = false;
     emit backtest_finished();

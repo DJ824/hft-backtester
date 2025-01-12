@@ -28,6 +28,7 @@ BookGui::BookGui(QWidget *parent)
     setup_buttons();
     setup_trade_log();
     setup_orderbook_stats();
+    setup_strategy_selector();
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -485,4 +486,33 @@ void BookGui::reset_zoom() {
     m_price_plot->rescaleAxes();
     m_pnl_plot->rescaleAxes();
     update_plots();
+}
+
+void BookGui::setup_strategy_selector() {
+    m_strategy_selector = new QComboBox(this);
+
+    m_strategy_selector->addItem("Linear Model Strategy");
+    m_strategy_selector->addItem("Imbalance Strategy");
+
+    m_button_layout->addWidget(new QLabel("Strategy:"));
+    m_button_layout->addWidget(m_strategy_selector);
+
+    m_start_button->setEnabled(false);
+
+    connect(m_strategy_selector, QOverload<const QString &>::of(&QComboBox::currentTextChanged),
+            [this](const QString &text) {
+                bool requires_fitting = false;
+
+                if (text == "Linear Model Strategy") {
+                    requires_fitting = true;
+                }
+                else if (text == "Imbalance Strategy") {
+                    requires_fitting = false;
+                }
+
+                m_start_button->setEnabled(true);
+                emit strategy_changed(text, requires_fitting);
+            });
+
+    m_strategy_selector->setCurrentText("Linear Model Strategy");
 }
