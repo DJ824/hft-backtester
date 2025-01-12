@@ -16,7 +16,7 @@
 class LinearModelStrategy : public Strategy {
 protected:
     static constexpr int MAX_LAG_ = 5;
-    static constexpr int FORECAST_WINDOW_ = 300;
+    static constexpr int FORECAST_WINDOW_ = 120;
     static constexpr double THRESHOLD_ = 10;
     static constexpr int TRADE_SIZE_ = 1;
 

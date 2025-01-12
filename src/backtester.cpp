@@ -1,4 +1,3 @@
-
 #include "backtester.h"
 #include <QDateTime>
 #include <QCoreApplication>
@@ -141,7 +140,7 @@ void Backtester::update_gui() {
     qint64 timestamp = date_time.toMSecsSinceEpoch();
 
     emit update_chart(timestamp, bid, ask, pnl);
-    emit update_orderbook_stats(book_->vwap_, book_->imbalance_, QString::fromStdString(time_string));
+    emit update_orderbook_stats(book_->vwap_, book_->imbalance_, QString::fromStdString(time_string), pnl);
 
 }
 

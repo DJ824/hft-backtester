@@ -20,7 +20,8 @@ BookGui::BookGui(QWidget *parent)
           m_orderbook_stats_table(new QTableWidget(this)),
           m_button_layout(new QHBoxLayout()),
           m_auto_scroll(true),
-          m_user_scrolling(false) {
+          m_user_scrolling(false),
+          m_charts_enabled(true) {
 
     setup_plots();
     setup_scroll_bar();
@@ -33,6 +34,14 @@ BookGui::BookGui(QWidget *parent)
     m_button_layout->addWidget(m_start_button);
     m_button_layout->addWidget(m_stop_button);
     m_button_layout->addWidget(m_restart_button);
+
+    m_chart_toggle_button = new QPushButton("Charts: On", this);
+    m_button_layout->addWidget(m_chart_toggle_button);
+
+    connect(m_chart_toggle_button, &QPushButton::clicked, this, [this]() {
+        m_charts_enabled = !m_charts_enabled;
+        m_chart_toggle_button->setText(m_charts_enabled ? "Charts: On" : "Charts: Off");
+    });
 
     QPushButton *resetZoomButton = new QPushButton("Reset Zoom", this);
     connect(resetZoomButton, &QPushButton::clicked, this, &BookGui::reset_zoom);
@@ -70,12 +79,13 @@ void BookGui::setup_orderbook_stats() {
     m_orderbook_stats_table->setStyleSheet("QTableWidget { border: none; }");
     m_orderbook_stats_table->horizontalHeader()->setStretchLastSection(true);
 
-    m_orderbook_stats_table->setRowCount(3);
+    m_orderbook_stats_table->setRowCount(4);
     m_orderbook_stats_table->setItem(0, 0, new QTableWidgetItem("VWAP"));
     m_orderbook_stats_table->setItem(1, 0, new QTableWidgetItem("Imbalance"));
     m_orderbook_stats_table->setItem(2, 0, new QTableWidgetItem("Current Time"));
+    m_orderbook_stats_table->setItem(3, 0, new QTableWidgetItem("P/L"));
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         m_orderbook_stats_table->setItem(i, 1, new QTableWidgetItem(""));
     }
 }
@@ -88,16 +98,21 @@ void BookGui::clear_orderbook_stats() {
     }
 }
 
-void BookGui::update_orderbook_stats(double vwap, double imbalance, const QString& current_time) {
+void BookGui::update_orderbook_stats(double vwap, double imbalance, const QString& current_time, int32_t pnl) {
     if (auto item = m_orderbook_stats_table->item(0, 1)) {
-        //item->setText(QString::number(vwap, 'f', 2));
+        item->setText(QString::number(vwap, 'f', 2));
     }
     if (auto item = m_orderbook_stats_table->item(1, 1)) {
-        //item->setText(QString::number(imbalance, 'f', 4));
+        item->setText(QString::number(imbalance, 'f', 4));
     }
     if (auto item = m_orderbook_stats_table->item(2, 1)) {
         item->setText(current_time);
     }
+
+    if (auto item = m_orderbook_stats_table->item(3,1)) {
+        item->setText(QString::number(pnl));
+    }
+
 }
 
 void BookGui::setup_plots() {
@@ -116,12 +131,8 @@ void BookGui::setup_plots() {
 
     m_price_plot->legend->setVisible(false);
 
-    // m_price_plot->setOpenGl(true);
-    //m_pnl_plot->setOpenGl(true);
-
     m_bid_graph->setAdaptiveSampling(true);
     m_ask_graph->setAdaptiveSampling(true);
-    // m_pnl_graph->setAdaptiveSampling(true);
 
     m_price_plot->setNotAntialiasedElements(QCP::aeAll);
 
@@ -173,6 +184,8 @@ void BookGui::style_plot(QCustomPlot *plot) {
 }
 
 void BookGui::add_data_point(qint64 timestamp, double bestBid, double bestAsk, double pnl) {
+    if (!m_charts_enabled) return;
+
     double timeInSeconds = timestamp / 1000.0;
 
     m_bid_graph->addData(timeInSeconds, bestBid);
@@ -188,12 +201,11 @@ void BookGui::add_data_point(qint64 timestamp, double bestBid, double bestAsk, d
     }
 
     update_scroll_bar();
-
     update_plots();
 }
 
 void BookGui::update_plots() {
-    if (isVisible()) {
+    if (isVisible() && m_charts_enabled) {
         update_price_plot();
         update_pnl_plot();
     }

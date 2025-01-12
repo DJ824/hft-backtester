@@ -15,8 +15,6 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 
-//test git
-
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName("HFT Backtester");
@@ -27,14 +25,6 @@ int main(int argc, char *argv[]) {
         cmdParser.setApplicationDescription("High Frequency Trading Backtester");
         cmdParser.addHelpOption();
         cmdParser.addVersionOption();
-
-        QCommandLineOption guiOption(
-                QStringList() << "g" << "gui",
-                "Enable GUI mode (default: true)",
-                "bool",
-                "true"
-        );
-        cmdParser.addOption(guiOption);
 
         QCommandLineOption inputFileOption(
                 QStringList() << "i" << "input",
@@ -52,7 +42,6 @@ int main(int argc, char *argv[]) {
 
         cmdParser.process(app);
 
-        bool guiEnabled = cmdParser.value(guiOption).toLower() != "false";
         QString inputFile = cmdParser.value(inputFileOption);
         QString trainFile = cmdParser.value(trainFileOption);
 
@@ -85,70 +74,47 @@ int main(int argc, char *argv[]) {
         auto backtester = new Backtester(db_manager, dataParser->message_stream_,
                                          trainParser->message_stream_);
 
-        if (guiEnabled) {
-            qDebug() << "[Main] Starting in GUI mode";
-            auto gui = new BookGui();
-            gui->show();
+        auto gui = new BookGui();
+        gui->show();
 
-            QObject::connect(gui, &BookGui::start_backtest,
-                             backtester, &Backtester::handleStartSignal,
-                             Qt::QueuedConnection);
+        QObject::connect(gui, &BookGui::start_backtest,
+                         backtester, &Backtester::handleStartSignal,
+                         Qt::QueuedConnection);
 
-            QObject::connect(gui, &BookGui::stop_backtest,
-                             backtester, &Backtester::stop_backtest,
-                             Qt::QueuedConnection);
+        QObject::connect(gui, &BookGui::stop_backtest,
+                         backtester, &Backtester::stop_backtest,
+                         Qt::QueuedConnection);
 
-            QObject::connect(backtester, &Backtester::backtest_finished,
-                             gui, &BookGui::on_backtest_finished,
-                             Qt::QueuedConnection);
+        QObject::connect(backtester, &Backtester::backtest_finished,
+                         gui, &BookGui::on_backtest_finished,
+                         Qt::QueuedConnection);
 
-            QObject::connect(backtester, &Backtester::update_progress,
-                             gui, &BookGui::update_progress,
-                             Qt::QueuedConnection);
+        QObject::connect(backtester, &Backtester::update_progress,
+                         gui, &BookGui::update_progress,
+                         Qt::QueuedConnection);
 
-            QObject::connect(backtester, &Backtester::trade_executed,
-                             gui, &BookGui::log_trade,
-                             Qt::QueuedConnection);
+        QObject::connect(backtester, &Backtester::trade_executed,
+                         gui, &BookGui::log_trade,
+                         Qt::QueuedConnection);
 
-            QObject::connect(backtester, &Backtester::update_chart,
-                             gui, &BookGui::add_data_point,
-                             Qt::QueuedConnection);
+        QObject::connect(backtester, &Backtester::update_chart,
+                         gui, &BookGui::add_data_point,
+                         Qt::QueuedConnection);
 
-            QObject::connect(backtester, &Backtester::backtest_error,
-                             gui, &BookGui::on_backtest_error,
-                             Qt::QueuedConnection);
+        QObject::connect(backtester, &Backtester::backtest_error,
+                         gui, &BookGui::on_backtest_error,
+                         Qt::QueuedConnection);
 
-            QObject::connect(backtester, &Backtester::update_orderbook_stats,
-                             gui, &BookGui::update_orderbook_stats,
-                             Qt::QueuedConnection);
+        QObject::connect(backtester, &Backtester::update_orderbook_stats,
+                         gui, &BookGui::update_orderbook_stats,
+                         Qt::QueuedConnection);
 
-            QObject::connect(gui, &BookGui::restart_backtest,
-                             backtester, &Backtester::restart_backtest,
-                             Qt::QueuedConnection);
+        QObject::connect(gui, &BookGui::restart_backtest,
+                         backtester, &Backtester::restart_backtest,
+                         Qt::QueuedConnection);
 
-            qDebug() << "[Main] GUI initialized, starting event loop";
-            return app.exec();
-
-        } else {
-            qDebug() << "[Main] Starting in headless mode";
-
-            QObject::connect(backtester, &Backtester::backtest_finished,
-                             []() {
-                                 qDebug() << "[Main] Backtest completed";
-                                 QCoreApplication::quit();
-                             });
-
-            QObject::connect(backtester, &Backtester::backtest_error,
-                             [](const QString& error_message) {
-                                 qCritical() << "[Error]" << error_message;
-                                 QCoreApplication::exit(1);
-                             });
-
-            qDebug() << "[Main] Starting backtest...";
-            backtester->start_backtest();
-
-            return app.exec();
-        }
+        qDebug() << "[Main] GUI initialized, starting event loop";
+        return app.exec();
 
     } catch (const std::exception& e) {
         qCritical() << "[Main] Fatal error:" << e.what();
