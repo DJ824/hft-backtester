@@ -1,22 +1,22 @@
-#ifndef DATABENTO_ORDERBOOK_LOOKUP_TABLE_H
-#define DATABENTO_ORDERBOOK_LOOKUP_TABLE_H
+#ifndef VECTOR_OB_LOOKUP_TABLE_H
+#define VECTOR_OB_LOOKUP_TABLE_H
 
 #include <vector>
-#include <xxhash/xxhash.h>
-#include "order.h"
+#include "xxhash/xxhash.h"
 
+template<typename OrderType>
 class OpenAddressTable {
 private:
     struct alignas(16) Entry {
         uint64_t key_;
-        Order* val_;
+        OrderType* val_;
         uint16_t probe_dist_;
-        uint8_t status_; // 0 for empty, 2 for filled
-        uint8_t padding_[5]; // Ensure proper alignment
+        uint8_t status_;
+        uint8_t padding_[5];
 
         Entry() noexcept : key_(0), val_(nullptr), probe_dist_(0), status_(0) {}
 
-        Entry(uint64_t key, Order* val, uint16_t probe_dist, uint8_t status) noexcept :
+        Entry(uint64_t key, OrderType* val, uint16_t probe_dist, uint8_t status) noexcept :
                 key_(key),
                 val_(val),
                 probe_dist_(probe_dist),
@@ -65,7 +65,7 @@ public:
     }
 
     __attribute__((always_inline))
-    bool insert(uint64_t key, Order* val) {
+    bool insert(uint64_t key, OrderType* val) {
         if (load_factor() >= LOAD_FACTOR_THRESHOLD) {
             resize();
         }
@@ -110,10 +110,11 @@ public:
         size_t probe_dist = 0;
 
         while (true) {
-            if (data_[pos].status_ == 0) return false;
+            if (data_[pos].status_ == 0) {
+                return false;
+            }
 
             if (data_[pos].status_ == 2 && data_[pos].key_ == key) {
-                // Backward shift deletion
                 size_t curr = pos;
                 while (true) {
                     size_t next = next_probe_position(curr);
@@ -130,7 +131,9 @@ public:
                 return true;
             }
 
-            if (probe_dist > data_[pos].probe_dist_) return false;
+            if (probe_dist > data_[pos].probe_dist_) {
+                return false;
+            }
 
             pos = next_probe_position(pos);
             ++probe_dist;
@@ -138,8 +141,10 @@ public:
     }
 
     __attribute__((always_inline))
-    const Order* const * find(uint64_t key) const {
-        if (data_.empty()) return nullptr;
+    const OrderType* const * find(uint64_t key) const {
+        if (data_.empty()) {
+            return nullptr;
+        }
 
         const size_t mask = data_.size() - 1;
         size_t pos = hash_key(key) & mask;
@@ -165,8 +170,8 @@ public:
     }
 
     __attribute__((always_inline))
-    Order** find(uint64_t key) {
-        return const_cast<Order**>(const_cast<const OpenAddressTable*>(this)->find(key));
+    OrderType** find(uint64_t key) {
+        return const_cast<OrderType**>(const_cast<const OpenAddressTable*>(this)->find(key));
     }
 
 private:
@@ -267,4 +272,4 @@ public:
     }
 };
 
-#endif //DATABENTO_ORDERBOOK_LOOKUP_TABLE_H
+#endif //VECTOR_OB_LOOKUP_TABLE_H

@@ -1,4 +1,3 @@
-#pragma once
 
 #include "strategy.h"
 
@@ -10,7 +9,6 @@ private:
     const int WARMUP_PERIOD = 1000;
 
 protected:
-    bool req_fitting = false;
 
     void fit_model() override {
 
@@ -37,18 +35,15 @@ protected:
     }
 
 
-    void log_stats(const Orderbook &book) override {
-        std::string timestamp = book.get_formatted_time_fast();
-        auto bid = book.get_best_bid_price();
-        auto ask = book.get_best_ask_price();
-        int trade_count = buy_qty_ + sell_qty_;
-
-        logger_->log(timestamp, bid, ask, position_, trade_count, pnl_);
-    }
 
 public:
-    explicit ImbalanceStrat(DatabaseManager &db_manager, Orderbook *book)
-            : Strategy(db_manager, "imbalance_strat_log.csv", book) {}
+    explicit ImbalanceStrat(std::shared_ptr<ConnectionPool> pool,
+                            const std::string& instrument_id,
+                            Orderbook* book)
+            : Strategy(pool, "imbalance_strat_log.csv", instrument_id, book) {
+        name_ = "imbalance_strat";
+        req_fitting_ = false;
+    }
 
     void on_book_update() override {
 
@@ -68,6 +63,16 @@ public:
         update_theo_values();
         calculate_pnl();
     }
+
+    void log_stats(const Orderbook &book) override {
+        std::string timestamp = book.get_formatted_time_fast();
+        auto bid = book.get_best_bid_price();
+        auto ask = book.get_best_ask_price();
+        int trade_count = buy_qty_ + sell_qty_;
+
+        logger_->log(timestamp, bid, ask, position_, trade_count, pnl_);
+    }
+
 
     void execute_trade(bool is_buy, int32_t price, int size) override {
         if (is_buy) {

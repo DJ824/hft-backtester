@@ -1,4 +1,3 @@
-#pragma once
 
 #include <iostream>
 #include <memory>
@@ -10,15 +9,17 @@
 #include <numeric>
 #include <Eigen/Dense>
 #include "strategy.h"
-#include "orderbook.h"
-#include "async_logger.h"
+#include "../book/orderbook.cpp"
+#include "../include/async_logger.h"
 
 class LinearModelStrategy : public Strategy {
 protected:
     static constexpr int MAX_LAG_ = 5;
     static constexpr int FORECAST_WINDOW_ = 120;
-    static constexpr double THRESHOLD_ = 10;
+    static constexpr double THRESHOLD_ = 20;
     static constexpr int TRADE_SIZE_ = 1;
+    std::mutex fit_mutex_;
+    std::mutex log_mutex_;
 
     std::vector<double> model_coefficients_;
     int forecast_window_;
@@ -41,12 +42,11 @@ protected:
             prediction += model_coefficients_[i + 1] * voi;
         }
 
-       // std::cout << prediction << std::endl;
-       // std::cout << book_->get_formatted_time_fast() << std::endl;
+        // std::cout << prediction << std::endl;
+        // std::cout << book_->get_formatted_time_fast() << std::endl;
 
         return prediction;
     }
-
 
     void update_theo_values() override {
         int32_t bid_price = book_->get_best_bid_price();
@@ -69,24 +69,18 @@ protected:
                                real_total_buy_px_ - theo_total_buy_px_) - fees_;
     }
 
-    void log_stats(const Orderbook& book) override {
-        std::string timestamp = book.get_formatted_time_fast();
-        int32_t bid = book.get_best_bid_price();
-        int32_t ask = book.get_best_ask_price();
-        int trade_count = buy_qty_ + sell_qty_;
-
-        logger_->log(timestamp, bid, ask, position_, trade_count, pnl_);
-    }
 
 public:
 
-    bool req_fitting = true;
-
-    explicit LinearModelStrategy(DatabaseManager& db_manager, Orderbook* book)
-            : Strategy(db_manager, "linear_model_strategy_log.csv", book),
-              forecast_window_(FORECAST_WINDOW_), fees_(0.0) {
-
+    explicit LinearModelStrategy(std::shared_ptr<ConnectionPool> pool,
+                                 const std::string& instrument_id,
+                                 Orderbook* book)
+            : Strategy(pool, "linear_model_strategy_log.csv", instrument_id, book),
+              forecast_window_(FORECAST_WINDOW_),
+              fees_(0.0) {
         model_coefficients_.resize(MAX_LAG_ + 2, 0.0);
+        name_ = "linear_model_strat";
+        req_fitting_ = true;
     }
 
     void execute_trade(bool is_buy, int32_t price, int32_t trade_size) override {
@@ -104,6 +98,15 @@ public:
         fees_ += FEES_PER_SIDE_;
     }
 
+    void log_stats(const Orderbook& book) override {
+        std::string timestamp = book.get_formatted_time_fast();
+        int32_t bid = book.get_best_bid_price();
+        int32_t ask = book.get_best_ask_price();
+        int trade_count = buy_qty_ + sell_qty_;
+
+        logger_->log(timestamp, bid, ask, position_, trade_count, pnl_);
+    }
+
 
     void on_book_update() override {
 
@@ -116,13 +119,15 @@ public:
         int32_t ask_price = book_->get_best_ask_price();
 
         if (predicted_change >= THRESHOLD_ && position_ < max_pos_) {
-            std::cout << predicted_change << std::endl;
-            std::cout << book_->get_formatted_time_fast() << std::endl;
+            //std::cout << predicted_change << std::endl;
+            //std::cout << book_->get_formatted_time_fast() << std::endl;
             execute_trade(true, ask_price, 1);
+            log_stats(*book_);
         } else if (predicted_change <= -THRESHOLD_ && position_ > -max_pos_) {
-            std::cout << predicted_change << std::endl;
-            std::cout << book_->get_formatted_time_fast() << std::endl;
+            //std::cout << predicted_change << std::endl;
+            //std::cout << book_->get_formatted_time_fast() << std::endl;
             execute_trade(false, bid_price, 1);
+            log_stats(*book_);
         }
 
         update_theo_values();
@@ -141,7 +146,12 @@ public:
     }
 
     void fit_model() override {
-        std::cout << book_->voi_history_.size() << std::endl;
+        std::lock_guard<std::mutex> lock(fit_mutex_);
+        {
+            std::lock_guard<std::mutex> log_lock(log_mutex_);
+            std::cout << "[" << std::this_thread::get_id() << "] Fitting model for "
+                      << symbol_ << "...\n";
+        }
         int n = static_cast<int>(book_->voi_history_.size()) - forecast_window_ - MAX_LAG_;
 
         Eigen::MatrixXd X(n, MAX_LAG_ + 2);
@@ -167,10 +177,16 @@ public:
 
         model_coefficients_ = std::vector<double>(coeffs.data(), coeffs.data() + coeffs.size());
 
-        std::cout << "model coefficients:" << std::endl;
-        for (size_t i = 0; i < model_coefficients_.size(); ++i) {
-            std::cout << "coeff[" << i << "]: " << model_coefficients_[i] << std::endl;
+        {
+            std::lock_guard<std::mutex> log_lock(log_mutex_);
+            std::cout << "[" << std::this_thread::get_id() << "] Model coefficients for "
+                      << symbol_ << ":\n";
+
+            for (size_t i = 0; i < model_coefficients_.size(); ++i) {
+                std::cout << "coeff[" << i << "]: " << model_coefficients_[i] << std::endl;
+            }
         }
+
     }
 
 };
