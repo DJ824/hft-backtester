@@ -52,7 +52,7 @@ void ConcurrentBacktester::start_backtest(size_t strategy_index) {
 
     {
         std::lock_guard<std::mutex> lock(cout_mutex_);
-        std::cout << "\nStarting backtest for " << instruments_.size() << " instruments\n\n";
+        std::cout << "\nstarting backtest for " << instruments_.size() << " instruments\n\n";
     }
 
     std::vector<std::future<void>> futures;
@@ -64,7 +64,7 @@ void ConcurrentBacktester::start_backtest(size_t strategy_index) {
 
                 {
                     std::lock_guard<std::mutex> lock(cout_mutex_);
-                    std::cout << "[" << std::this_thread::get_id() << "] Starting "
+                    std::cout << "[" << std::this_thread::get_id() << "] starting "
                               << config.instrument_id << " backtest...\n";
                 }
 
@@ -75,7 +75,7 @@ void ConcurrentBacktester::start_backtest(size_t strategy_index) {
                     {
                         std::lock_guard<std::mutex> lock(cout_mutex_);
                         std::cout << "[" << std::this_thread::get_id() << "] "
-                                  << config.instrument_id << ": Training model...\n";
+                                  << config.instrument_id << ": training model...\n";
                     }
 
                     config.backtester->train_model();
@@ -83,7 +83,7 @@ void ConcurrentBacktester::start_backtest(size_t strategy_index) {
                     {
                         std::lock_guard<std::mutex> lock(cout_mutex_);
                         std::cout << "[" << std::this_thread::get_id() << "] "
-                                  << config.instrument_id << ": Training complete\n";
+                                  << config.instrument_id << ": training complete\n";
                     }
                 }
 
@@ -97,7 +97,7 @@ void ConcurrentBacktester::start_backtest(size_t strategy_index) {
 
             } catch(const std::exception& e) {
                 std::lock_guard<std::mutex> lock(cout_mutex_);
-                std::cerr << "[" << std::this_thread::get_id() << "] Error in "
+                std::cerr << "[" << std::this_thread::get_id() << "] error in "
                           << config.instrument_id << " backtest: " << e.what() << std::endl;
             }
         }));

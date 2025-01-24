@@ -6,13 +6,15 @@ ConnectionPool::ConnectionPool(const std::string& host, int port,
         : host_(host), port_(port), max_size_(max_size), initial_size_(initial_size) {
     for (size_t i = 0; i < initial_size_; ++i) {
         if (!add_connection()) {
-            throw std::runtime_error("Failed to initialize connection pool");
+            throw std::runtime_error("failed to create pool");
         }
     }
 }
 
 bool ConnectionPool::add_connection() {
-    if (current_size_ >= max_size_) return false;
+    if (current_size_ >= max_size_) {
+        return false;
+    }
 
     try {
         auto conn = std::make_unique<Connection>(
@@ -25,7 +27,7 @@ bool ConnectionPool::add_connection() {
         return true;
     }
     catch (const std::exception& e) {
-        std::cerr << "Failed to create connection: " << e.what() << std::endl;
+        std::cerr << "failed to create connection: " << e.what() << std::endl;
         return false;
     }
 }
@@ -40,7 +42,9 @@ Connection* ConnectionPool::acquire_connection() {
         pool_cv_.wait_for(lock, std::chrono::seconds(5));
     }
 
-    if (shutdown_ || available_connections_.empty()) return nullptr;
+    if (shutdown_ || available_connections_.empty()) {
+        return nullptr;
+    }
 
     auto* conn = available_connections_.front();
     available_connections_.pop();
@@ -49,7 +53,9 @@ Connection* ConnectionPool::acquire_connection() {
 }
 
 void ConnectionPool::release_connection(Connection* conn) {
-    if (!conn) return;
+    if (!conn) {
+        return;
+    }
 
     std::lock_guard<std::mutex> lock(pool_mutex_);
     conn->set_in_use(false);

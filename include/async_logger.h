@@ -30,7 +30,7 @@ private:
     char* log_buffer_;
     size_t buffer_size_;
     size_t buffer_offset_;
-    static constexpr size_t DEFAULT_BUFFER_SIZE = 10 * 1024 * 1024; 
+    static constexpr size_t DEFAULT_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB buffer
 
     LockFreeQueue<LogEntry, 1000000> console_queue_;
     LockFreeQueue<LogEntry, 1000000> csv_queue_;

@@ -2,9 +2,20 @@ cmake_minimum_required(VERSION 3.27)
 
 project(databento_orderbook)
 
-set(CMAKE_CXX_STANDARD 17)
+include(FetchContent)
+FetchContent_Declare(
+        databento
+        GIT_REPOSITORY https://github.com/databento/databento-cpp
+        GIT_TAG HEAD
+)
+FetchContent_MakeAvailable(databento)
+
+
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3")
 
 set(AWS_SDK_PATH "/opt/homebrew/Cellar/aws-sdk-cpp/1.11.450")
 
@@ -35,9 +46,12 @@ set(WEBSOCKETPP_INCLUDE_DIR "/usr/local/include")
 set(EIGEN_ROOT "/opt/homebrew/Cellar/eigen/3.4.0_1")
 set(EIGEN_INCLUDE_DIR "${EIGEN_ROOT}/include/eigen3")
 
+set(XXHASH_ROOT "/opt/homebrew/Cellar/xxhash")
+set(XXHASH_INCLUDE_DIR "${XXHASH_ROOT}/include")
+set(XXHASH_LIBRARY_DIR "${XXHASH_ROOT}/lib")
+
 set(SOURCES
         ${SOURCES}
-        src/cloud_storage.cpp
         src/book/limit.cpp
         src/book/order.cpp
         src/book/orderbook.cpp
@@ -45,40 +59,38 @@ set(SOURCES
         src/strategies/imbalance_strat.cpp
         src/async_logger.cpp
         src/backtester.cpp
-        src/book_gui.cpp
-        src/database.cpp
         src/main.cpp
         src/parser.cpp
         include/qcustomplot/qcustomplot.cpp
+        src/concurrent_backtest.cpp
+
 )
 
 set(HEADERS
         ${HEADERS}
-        include/cloud_storage.h
-        include/async_logger.h
-        include/backtester.h
-        include/book_gui.h
-        include/database.h
-        include/limit.h
-        include/limit_pool.h
         include/lock_free_queue.h
         include/message.h
-        include/order.h
-        include/order_pool.h
-        include/orderbook.h
-        include/parser.h
         include/strategy.h
         include/qcustomplot/qcustomplot.h
-        include/interactive_plot.h
-        src/interactive_plot.cpp
         src/strategies/linear_model_strat.cpp
-        include/aws_config.h
+        include/lookup_table/lookup_table.h
+        include/lookup_table/xxhash/xxhash.h
+        include/threadpool.h
+        src/connection_pool.cpp
+        src/db_connection.cpp
+        include/connection_pool.h
+        include/db_connection.h
+        include/backtester.h
+        include/concurrent_backtest.h
+        include/async_logger.h
 )
 
 find_package(AWSSDK REQUIRED COMPONENTS s3)
 find_package(Boost 1.75.0 REQUIRED COMPONENTS system filesystem)
 find_library(PQXX_LIB pqxx PATHS ${PQXX_LIBRARY_DIR} REQUIRED)
 find_library(CURL_LIB curl PATHS ${CURL_LIBRARY_DIR} REQUIRED)
+find_library(XXHASH_LIB xxhash PATHS ${XXHASH_LIBRARY_DIR} REQUIRED)
+
 find_package(Qt6 COMPONENTS Core Gui Widgets Charts PrintSupport REQUIRED)
 
 include_directories(
@@ -90,6 +102,7 @@ include_directories(
         ${WEBSOCKETPP_INCLUDE_DIR}
         ${EIGEN_INCLUDE_DIR}
         ${AWS_SDK_PATH}/include
+        ${XXHASH_INCLUDE_DIR}
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
@@ -106,6 +119,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         Qt6::Widgets
         Qt6::Charts
         Qt6::PrintSupport
+        ${XXHASH_LIB}
+        databento::databento
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -132,6 +147,3 @@ set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${AWS_SDK_PATH}/lib)
 set_target_properties(${PROJECT_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
-
-message(STATUS "AWS SDK Path: ${AWS_SDK_PATH}")
-message(STATUS "AWS Libraries: ${AWSSDK_LIBRARIES}")

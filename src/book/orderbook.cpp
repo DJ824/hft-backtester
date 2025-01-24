@@ -49,14 +49,13 @@ public:
     std::vector<int32_t> voi_history_;
     std::vector<int32_t> voi_history_curr_;
 
-    bool update_possible = false;
     double vwap_, sum1_, sum2_;
     float skew_, bid_depth_, ask_depth_;
     int32_t bid_vol_, ask_vol_;
-    std::string last_reset_time_;
     double imbalance_;
 
-    // VOI calculation variables
+    bool update_possible = false;
+
     int32_t bid_delta_;
     int32_t ask_delta_;
     int32_t prev_best_bid_;
@@ -416,10 +415,8 @@ public:
         ask_depth_ = 0.0;
         bid_vol_ = 0;
         ask_vol_ = 0;
-        last_reset_time_ = "";
         imbalance_ = 0.0;
 
-        current_message_time_ = std::chrono::system_clock::time_point();
 
         bids_.get_allocator().allocate(1000);
         offers_.get_allocator().allocate(1000);
@@ -427,54 +424,32 @@ public:
         limit_lookup_.reserve(2000);
     }
 
-    inline int32_t get_best_bid_price() const {
-        return bids_.begin()->first;
-    }
+    inline int32_t get_best_bid_price() const { return bids_.begin()->first; }
 
-    inline int32_t get_best_ask_price() const {
-        return offers_.begin()->first;
-    }
+    inline int32_t get_best_ask_price() const { return offers_.begin()->first; }
 
-    inline int32_t get_best_bid_volume() {
-        return bids_.begin()->second->volume_;
-    }
+    inline int32_t get_best_bid_volume() { return bids_.begin()->second->volume_; }
 
-    inline int32_t get_best_ask_volume() {
-        return offers_.begin()->second->volume_;
-    }
+    inline int32_t get_best_ask_volume() { return offers_.begin()->second->volume_; }
 
-    uint64_t get_bid_depth() const {
-        return bids_.begin()->second->volume_;
-    }
+    uint64_t get_bid_depth() const { return bids_.begin()->second->volume_; }
 
-    uint64_t get_ask_depth() const {
-        return offers_.begin()->second->volume_;
-    }
+    uint64_t get_ask_depth() const { return offers_.begin()->second->volume_; }
 
-    uint64_t get_count() const {
-        return bid_count_ + ask_count_;
-    }
+    uint64_t get_count() const { return bid_count_ + ask_count_; }
 
-    inline int32_t get_mid_price() {
-        return (get_best_bid_price() + get_best_ask_price()) / 2;
-    }
+    inline int32_t get_mid_price() { return (get_best_bid_price() + get_best_ask_price()) / 2; }
 
-    void add_mid_price() {
-        mid_prices_.push_back(get_mid_price());
-    }
+    void add_mid_price() { mid_prices_.push_back(get_mid_price()); }
 
-    void add_mid_price_curr() {
-        mid_prices_curr_.push_back(get_mid_price());
-    }
+    void add_mid_price_curr() { mid_prices_curr_.push_back(get_mid_price()); }
 
     int32_t get_indexed_mid_price(size_t index) {
         size_t read_index = (write_index_ - 1 - index + BUFFER_SIZE) % BUFFER_SIZE;
         return mid_prices_[read_index];
     }
 
-    int32_t get_indexed_voi(size_t index) {
-        return voi_history_[index];
-    }
+    int32_t get_indexed_voi(size_t index) { return voi_history_[index]; }
 
     template<bool Side>
     int32_t &get_volume() {
@@ -484,35 +459,4 @@ public:
             return ask_vol_;
         }
     }
-
-    template<bool Side>
-    void update_vol(int32_t price, int32_t size, bool is_add) {
-        if (!update_possible) {
-            return;
-        }
-
-        int32_t &vol = Side ? bid_vol_ : ask_vol_;
-        int32_t best_price = Side ? get_best_bid_price() : get_best_ask_price();
-
-        if (std::abs(price - best_price) <= 2000) {
-            vol += is_add ? size : -size;
-        }
-    }
-
-    template<bool Side>
-    void update_modify_vol(int32_t og_price, int32_t new_price, int32_t og_size, int32_t new_size) {
-        if (!update_possible) {
-            return;
-        }
-
-        int32_t best_price = Side ? get_best_bid_price() : get_best_ask_price();
-        int32_t &vol = Side ? bid_vol_ : ask_vol_;
-
-        int32_t og_in_range = (std::abs(og_price - best_price) <= 2000);
-        int32_t new_in_range = (std::abs(new_price - best_price) <= 2000);
-
-        vol -= og_size * og_in_range;
-        vol += new_size * new_in_range;
-    }
-
 };

@@ -4,6 +4,7 @@
 #include "connection_pool.h"
 #include "async_logger.h"
 #include "../src/book/orderbook.cpp"
+#include <cstring>
 
 class Strategy {
 protected:
@@ -17,7 +18,7 @@ protected:
     float fees_;
     int32_t pnl_;
     static constexpr int max_pos_ = 1;
-    static constexpr int32_t POINT_VALUE_ = 2;
+    int32_t POINT_VALUE_ = 5;
     static constexpr int32_t FEES_PER_SIDE_ = 1;
     int32_t prev_pnl_;
     std::unique_ptr<AsyncLogger> logger_;
@@ -49,13 +50,13 @@ public:
 
         Connection* db_connection = connection_pool_->acquire_connection();
         if (!db_connection) {
-            throw std::runtime_error("Failed to acquire database connection for logger");
+            throw std::runtime_error("failed to acquire database connection for logger");
         }
 
         logger_ = std::make_unique<AsyncLogger>(db_connection, log_file_name, instrument_id);
 
-        strncpy(symbol_, instrument_id.c_str(), 2);
     }
+
     std::queue<std::tuple<bool, int32_t>> trade_queue_;
     virtual void log_stats(const Orderbook& book) = 0;
 

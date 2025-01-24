@@ -14,9 +14,6 @@ protected:
 
     }
 
-
-
-
     void update_theo_values() override {
         if (position_ == 0) {
             theo_total_buy_px_ = theo_total_sell_px_ = 0;

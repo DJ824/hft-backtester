@@ -1,4 +1,3 @@
-// backtester.cpp
 #include "backtester.h"
 #include "strategies/imbalance_strat.cpp"
 #include "strategies/linear_model_strat.cpp"
@@ -36,7 +35,7 @@ void Backtester::create_strategy(size_t strategy_index) {
                     connection_pool_, instrument_id_, book_.get());
             break;
         default:
-            throw std::runtime_error("Unknown strategy index: " +
+            throw std::runtime_error("unknown strategy index: " +
                                      std::to_string(strategy_index));
     }
 }
@@ -116,9 +115,8 @@ void Backtester::start_backtest() {
     }
 }
 
-void Backtester::stop_backtest() {
-    running_ = false;
-}
+void Backtester::stop_backtest() { running_ = false; }
+
 
 void Backtester::run_backtest() {
     auto parse_time = [](const std::string& time_str) {
@@ -134,6 +132,7 @@ void Backtester::run_backtest() {
         const auto& msg = messages_[current_message_index_];
         book_->process_msg(msg);
 
+
         std::string curr_time = book_->get_formatted_time_fast();
         int64_t curr_seconds = parse_time(curr_time);
 
@@ -144,11 +143,6 @@ void Backtester::run_backtest() {
 
             if (curr_seconds - prev_seconds >= 1) {
                 strategy_->on_book_update();
-
-                while (!strategy_->trade_queue_.empty()) {
-                    strategy_->trade_queue_.pop();
-                }
-
                 prev_seconds = curr_seconds;
             }
         }
@@ -158,6 +152,7 @@ void Backtester::run_backtest() {
         }
 
         ++current_message_index_;
+
     }
 
     running_ = false;
@@ -169,8 +164,8 @@ void Backtester::reset_state() {
     train_message_index_ = 0;
     first_update_ = false;
 
-    book_ = std::make_unique<Orderbook>();
-    train_book_ = std::make_unique<Orderbook>();
+
+    train_book_.reset();
 
     if (strategy_) {
         strategy_->reset();

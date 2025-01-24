@@ -19,12 +19,12 @@ AsyncLogger::AsyncLogger(Connection* connection,
 
     log_fd_ = open(csv_file.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (log_fd_ == -1) {
-        throw std::runtime_error("Failed to open log file: " + std::string(strerror(errno)));
+        throw std::runtime_error("failed to open log file: " + std::string(strerror(errno)));
     }
 
     if (ftruncate(log_fd_, buffer_size_) == -1) {
         close(log_fd_);
-        throw std::runtime_error("Failed to resize log file: " + std::string(strerror(errno)));
+        throw std::runtime_error("failed to resize log file: " + std::string(strerror(errno)));
     }
 
     log_buffer_ = static_cast<char*>(mmap(nullptr, buffer_size_,
@@ -32,7 +32,7 @@ AsyncLogger::AsyncLogger(Connection* connection,
                                           MAP_SHARED, log_fd_, 0));
     if (log_buffer_ == MAP_FAILED) {
         close(log_fd_);
-        throw std::runtime_error("Failed to map log file: " + std::string(strerror(errno)));
+        throw std::runtime_error("failed to map log file: " + std::string(strerror(errno)));
     }
 
     write_to_buffer("timestamp,bid,ask,position,trade_count,pnl,instrument\n");
@@ -61,10 +61,10 @@ void AsyncLogger::console_loop() {
         std::optional<LogEntry> entry = console_queue_.dequeue();
         if (entry) {
             std::cout << "\033[1;36m" << entry->timestamp << "\033[0m | "
-                      << "Instrument: " << entry->instrument_id << " | "
-                      << "Position: " << entry->position << " | "
-                      << "Bid/Ask: " << entry->bid << "/" << entry->ask << " | "
-                      << "PnL: " << (entry->pnl >= 0 ? "\033[1;32m" : "\033[1;31m")
+                      << "instrument: " << entry->instrument_id << " | "
+                      << "position: " << entry->position << " | "
+                      << "bid/ask: " << entry->bid << "/" << entry->ask << " | "
+                      << "pnl: " << (entry->pnl >= 0 ? "\033[1;32m" : "\033[1;31m")
                       << std::fixed << std::setprecision(2) << entry->pnl
                       << "\033[0m" << std::endl;
         } else {

@@ -32,7 +32,7 @@ private:
         for (int i = 0; i < 2 && current < end; ++i) {
             current = static_cast<char*>(memchr(current, '\n', end - current));
             if (current) ++current;
-            else throw ParserException("Invalid file format: missing header");
+            else throw ParserException("invalid file format: missing header");
         }
 
         while (current < end) {
@@ -84,13 +84,9 @@ private:
         }
     }
 
-    bool check_file_format() const {
-        return true;
-    }
+    [[nodiscard]] bool check_file_format() const { return true; }
 
-    bool verify_message_consistency() const {
-        return true;
-    }
+    [[nodiscard]] bool verify_message_consistency() const { return true; }
 
 public:
     std::vector<message> message_stream_;
@@ -99,15 +95,13 @@ public:
             : file_path_(file_path), mapped_file_(nullptr), file_size_(0) {
 
         if (!std::filesystem::exists(file_path)) {
-            throw ParserException("File does not exist: " + file_path);
+            throw ParserException("file does not exist: " + file_path);
         }
 
         message_stream_.reserve(9000000);
     }
 
-    ~Parser() {
-        cleanup();
-    }
+    ~Parser() { cleanup(); }
 
     Parser(Parser&& other) noexcept
             : file_path_(std::move(other.file_path_))
@@ -142,13 +136,13 @@ public:
 
         int fd = open(file_path_.c_str(), O_RDONLY);
         if (fd == -1) {
-            throw ParserException("Failed to open file: " + file_path_);
+            throw ParserException("failed to open file: " + file_path_);
         }
 
         struct stat sb;
         if (fstat(fd, &sb) == -1) {
             close(fd);
-            throw ParserException("Failed to get file stats");
+            throw ParserException("failed to get file stats");
         }
 
         file_size_ = sb.st_size;
@@ -159,7 +153,7 @@ public:
 
         if (mapped_file_ == MAP_FAILED) {
             mapped_file_ = nullptr;
-            throw ParserException("Failed to memory map file");
+            throw ParserException("failed to memory map file");
         }
 
         try {
@@ -172,16 +166,9 @@ public:
         std::cout << "finished parsing" << std::endl;
     }
 
-    bool validate_file() const {
-        return check_file_format() && verify_message_consistency();
-    }
+    bool validate_file() const { return check_file_format() && verify_message_consistency(); }
 
+    const std::string& get_file_path() const { return file_path_; }
 
-    const std::string& get_file_path() const {
-        return file_path_;
-    }
-
-    size_t get_message_count() const {
-        return message_stream_.size();
-    }
+    size_t get_message_count() const { return message_stream_.size(); }
 };

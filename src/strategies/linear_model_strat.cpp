@@ -15,8 +15,8 @@
 class LinearModelStrategy : public Strategy {
 protected:
     static constexpr int MAX_LAG_ = 5;
-    static constexpr int FORECAST_WINDOW_ = 120;
-    static constexpr double THRESHOLD_ = 20;
+    static constexpr int FORECAST_WINDOW_ = 60;
+    static constexpr double THRESHOLD_ = 10;
     static constexpr int TRADE_SIZE_ = 1;
     std::mutex fit_mutex_;
     std::mutex log_mutex_;
@@ -24,6 +24,7 @@ protected:
     std::vector<double> model_coefficients_;
     int forecast_window_;
     double fees_ = 0.0;
+
 
 
     [[nodiscard]] double predict_price_change() const {
@@ -147,11 +148,6 @@ public:
 
     void fit_model() override {
         std::lock_guard<std::mutex> lock(fit_mutex_);
-        {
-            std::lock_guard<std::mutex> log_lock(log_mutex_);
-            std::cout << "[" << std::this_thread::get_id() << "] Fitting model for "
-                      << symbol_ << "...\n";
-        }
         int n = static_cast<int>(book_->voi_history_.size()) - forecast_window_ - MAX_LAG_;
 
         Eigen::MatrixXd X(n, MAX_LAG_ + 2);
@@ -179,7 +175,7 @@ public:
 
         {
             std::lock_guard<std::mutex> log_lock(log_mutex_);
-            std::cout << "[" << std::this_thread::get_id() << "] Model coefficients for "
+            std::cout << "[" << std::this_thread::get_id() << "] model coefficients for "
                       << symbol_ << ":\n";
 
             for (size_t i = 0; i < model_coefficients_.size(); ++i) {

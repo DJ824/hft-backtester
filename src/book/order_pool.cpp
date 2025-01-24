@@ -18,7 +18,6 @@ public:
         }
     }
 
-    // Get an order from the pool, allocate new if needed
     __attribute__((always_inline))
     inline Order* get_order() {
         if (available_orders_.empty()) {
@@ -30,16 +29,12 @@ public:
         return order;
     }
 
-    // Return an order back to the pool
     __attribute__((always_inline))
-    void return_order(Order* order) {
-        available_orders_.push_back(order);
-    }
+    void return_order(Order* order) { available_orders_.push_back(order); }
 
-    // Reset the pool
     __attribute__((always_inline))
     inline void reset() {
         pool_.clear();
-        pool_.reserve(1000000);  // Default capacity for HFT
+        pool_.reserve(1000000);
     }
 };

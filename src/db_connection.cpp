@@ -4,19 +4,18 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-Connection::Connection(const std::string& host, int port, const std::string& id)
-        : connection_id_(id)
-        , trade_log_queue_(std::make_unique<LockFreeQueue<std::string, 1000000>>()) {
+Connection::Connection(const std::string &host, int port, const std::string &id)
+        : connection_id_(id), trade_log_queue_(std::make_unique<LockFreeQueue<std::string, 1000000>>()) {
 
-std::memset(&serv_addr_, 0, sizeof(serv_addr_));
-serv_addr_.sin_family = AF_INET;
-serv_addr_.sin_port = htons(port);
+    std::memset(&serv_addr_, 0, sizeof(serv_addr_));
+    serv_addr_.sin_family = AF_INET;
+    serv_addr_.sin_port = htons(port);
 
-if (inet_pton(AF_INET, host.c_str(), &serv_addr_.sin_addr) <= 0) {
-throw std::runtime_error("Invalid address: " + host);
-}
+    if (inet_pton(AF_INET, host.c_str(), &serv_addr_.sin_addr) <= 0) {
+        throw std::runtime_error("invalid address: " + host);
+    }
 
-trade_log_thread_ = std::thread(&Connection::process_database_queue, this);
+    trade_log_thread_ = std::thread(&Connection::process_database_queue, this);
 }
 
 Connection::~Connection() {
@@ -39,7 +38,7 @@ void Connection::process_database_queue() {
                 ssize_t sent_bytes = ::send(sock_, line_protocol->c_str(),
                                             line_protocol->length(), 0);
                 if (sent_bytes < 0) {
-                    std::cerr << connection_id_ << " Error sending data: "
+                    std::cerr << connection_id_ << " error sending data: "
                               << strerror(errno) << std::endl;
                     reconnect();
                 }
@@ -61,14 +60,14 @@ bool Connection::ensure_connected() {
 bool Connection::connect() {
     sock_ = ::socket(AF_INET, SOCK_STREAM, 0);
     if (sock_ < 0) {
-        std::cerr << connection_id_ << " Socket creation error: "
+        std::cerr << connection_id_ << " socket creation error: "
                   << strerror(errno) << std::endl;
         return false;
     }
 
     int opt = 1;
     if (::setsockopt(sock_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-        std::cerr << connection_id_ << " Error setting socket options: "
+        std::cerr << connection_id_ << " error setting socket options: "
                   << strerror(errno) << std::endl;
         ::close(sock_);
         sock_ = -1;
@@ -81,9 +80,9 @@ bool Connection::connect() {
     ::setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     ::setsockopt(sock_, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-    if (::connect(sock_, reinterpret_cast<struct sockaddr*>(&serv_addr_),
+    if (::connect(sock_, reinterpret_cast<struct sockaddr *>(&serv_addr_),
                   sizeof(serv_addr_)) < 0) {
-        std::cerr << connection_id_ << " Connection failed: "
+        std::cerr << connection_id_ << " connection failed: "
                   << strerror(errno) << std::endl;
         ::close(sock_);
         sock_ = -1;
@@ -103,6 +102,4 @@ void Connection::reconnect() {
     active_ = false;
 }
 
-void Connection::send_trade_log(const std::string& log_entry) {
-    trade_log_queue_->enqueue(log_entry);
-}
+void Connection::send_trade_log(const std::string &log_entry) { trade_log_queue_->enqueue(log_entry); }
