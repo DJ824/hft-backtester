@@ -1,5 +1,5 @@
 # HFT Backtesting Suite 
-This project encompasses a backtesting suite using MBO orderbook data from databento.
+This project encompasses a backtesting suite using MBO orderbook data from databento. Able to get market data either using Databento API, or csv files downloaded from them. Currently, I only included the ability to backtest 2 instruments at a time (ES, MNQ), as the data is expensive lol (if someone from databento reads this can i have free credits) 
 
 ## Orderbook 
 - comprised of 3 pieces, the order object which represents the individual limit order, 
@@ -24,7 +24,7 @@ pointer to a backtester instance, thus we have 1 backtester instance per instrum
 - we use inheritance to model the strategy, as each strategy shares some general characteristics, along with some specialities 
 - the strategy has a shared_ptr to the database connection pool, passed from the backtester, and is responsible for acquiring connections from the pool 
 - the strategy also has a pointer to the orderbook for which the backtesting is occuring on, passed from the backtester 
-- i have included 2 strategies, one that uses a combination of orderbook imbalance and vwap, and another which uses a linear regression model on order book imbalance
+- I have included 2 strategies, one that uses a combination of orderbook imbalance and vwap, and another which uses a linear regression model on order book imbalance
 
 ## Database 
 - we use QuestDB using their influx line protocol to send trade logs via tcp routing to the database 
@@ -33,5 +33,9 @@ pointer to a backtester instance, thus we have 1 backtester instance per instrum
 
 ## Async Logger 
 - the async logger is responsible for sending trade logs to the database, in addition to the console and a csv file 
-- we have 1 thread per output destination, and a lock free queue to store the trade logs 
+- we have 1 thread per output destination, and a lock free queue to store the trade logs
+
+
+
+
 
