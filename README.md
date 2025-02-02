@@ -38,6 +38,12 @@ pointer to a backtester instance, thus we have 1 backtester instance per instrum
 - we have 1 thread per output destination, and a lock free queue to store the trade logs
 
 
+Previously, when backtesting single instruments I had included a realtime GUI as well using QT studio. https://www.youtube.com/shorts/Nl-m4L0scYs
+Currently on the todo list to support concurrent backtesting for the gui. 
 
+## References 
+- https://databento.com/docs/examples/algo-trading/high-frequency for strategy pnl calcuations 
+- https://databento.com/docs/examples/algo-trading/high-frequency for orderbook design 
+- https://pdfcoffee.com/darryl-shenorderimbalancestrategypdf-pdf-free.html for the linear regression strategy 
 
 
