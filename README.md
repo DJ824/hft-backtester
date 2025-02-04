@@ -29,7 +29,7 @@ pointer to a backtester instance, thus we have 1 backtester instance per instrum
 - I have included 2 strategies, one that uses a combination of orderbook imbalance and vwap, and another which uses a linear regression model on order book imbalance
 
 ## Database 
-- we use QuestDB using their influx line protocol to send trade logs via tcp routing to the database 
+- QuestDB using their influx line protocol to send trade logs via tcp  
 - to prevent hogging of tcp lanes, implemented a connection pool, with each strategy instance having their own connection to the database 
 - the trade logs are passed from the async_logger class which is running on its own thread using a lock free queue to the database 
 
