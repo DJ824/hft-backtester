@@ -43,7 +43,7 @@ Currently on the todo list to support concurrent backtesting for the gui.
 
 ## References 
 - https://databento.com/docs/examples/algo-trading/high-frequency for strategy pnl calcuations 
-- https://databento.com/docs/examples/algo-trading/high-frequency for orderbook design 
+- https://web.archive.org/web/20110219163448/http://howtohft.wordpress.com/2011/02/15/how-to-build-a-fast-limit-order-book/ for orderbook design 
 - https://pdfcoffee.com/darryl-shenorderimbalancestrategypdf-pdf-free.html for the linear regression strategy 
 
 
