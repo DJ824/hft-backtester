@@ -8,7 +8,8 @@ https://youtu.be/98Tl0HQqu6M to see in action
 the limit object which represents all the orders at a certain price level, and the main orderbook
 - 3 main operations, add order, modify order, and remove order, when a market order is submitted, the way the data is formatted 
 is that it adjusts the size of the limit order that got executed on, cancelling if size was depleted 
-- in this design, we have 2 <std::map<uint32_t, Limit*, comparator>> to represent the orderbook with bids being in descending order and offers being in ascending order
+- in this design, we use 2 vectors to represent the sides of the book, one optimization technique is to make the best bid/ask the back
+of the vector, as most operations occur at those levels, we will avoid having to shift elements in the vector when limit objects are added/removed on the top of the book
 - each limit object is comprised of a double linked list of order objects, and we store individual pointers to order objects in a custom open address table ([another repo for statistics](https://github.com/DJ824/open-address-table)) by order_id for o(1) access to each limit order
 - pointers to limit objects are also stored in a std::unordered_map<std::pair<int32_t, bool>, MapLimit*, boost::hash<std::pair<int32_t, bool>>> hashing the combination of price,bool to determine which side of the book the limit belongs to. thus, we have o(1) + cost of hash access to each limit object
 
