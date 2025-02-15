@@ -58,7 +58,7 @@ bool Connection::ensure_connected() {
 }
 
 bool Connection::connect() {
-    sock_ = ::socket(AF_INET, SOCK_STREAM, 0);
+    sock_ = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_ < 0) {
         std::cerr << connection_id_ << " socket creation error: "
                   << strerror(errno) << std::endl;
@@ -66,10 +66,10 @@ bool Connection::connect() {
     }
 
     int opt = 1;
-    if (::setsockopt(sock_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+    if (setsockopt(sock_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
         std::cerr << connection_id_ << " error setting socket options: "
                   << strerror(errno) << std::endl;
-        ::close(sock_);
+        close(sock_);
         sock_ = -1;
         return false;
     }
@@ -77,14 +77,14 @@ bool Connection::connect() {
     struct timeval tv{};
     tv.tv_sec = 5;
     tv.tv_usec = 0;
-    ::setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    ::setsockopt(sock_, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(sock_, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
     if (::connect(sock_, reinterpret_cast<struct sockaddr *>(&serv_addr_),
                   sizeof(serv_addr_)) < 0) {
         std::cerr << connection_id_ << " connection failed: "
                   << strerror(errno) << std::endl;
-        ::close(sock_);
+        close(sock_);
         sock_ = -1;
         return false;
     }

@@ -1,4 +1,3 @@
-
 #include "strategy.h"
 
 class ImbalanceStrat : public Strategy {
@@ -9,9 +8,7 @@ private:
     const int WARMUP_PERIOD = 1000;
 
 protected:
-
     void fit_model() override {
-
     }
 
     void update_theo_values() override {
@@ -31,30 +28,36 @@ protected:
                                real_total_buy_px_ - theo_total_buy_px_) - fees_;
     }
 
-
-
 public:
     explicit ImbalanceStrat(std::shared_ptr<ConnectionPool> pool,
-                            const std::string& instrument_id,
-                            Orderbook* book)
-            : Strategy(pool, "imbalance_strat_log.csv", instrument_id, book) {
+                            const std::string &instrument_id,
+                            Orderbook *book)
+        : Strategy(pool, "imbalance_strat_log.csv", instrument_id, book) {
         name_ = "imbalance_strat";
         req_fitting_ = false;
     }
 
     void on_book_update() override {
+        book_->calculate_vols();
+        book_->calculate_imbalance();
+
+
 
         auto imbalance = book_->imbalance_;
 
-        auto mid_price = book_->get_mid_price();
 
-        if (imbalance > 0 && book_->get_mid_price() < book_->vwap_ && position_ + 1 <= max_pos_) {
+
+        if (imbalance > 0 && book_->get_mid_price() < book_->vwap_ && position_ < max_pos_) {
             execute_trade(true, book_->get_best_ask_price(), 1);
-            trade_queue_.emplace(true, book_->get_best_ask_price());
-
-        } else if (imbalance < 0 && book_->get_mid_price() > book_->vwap_&& position_ - 1 >= -max_pos_) {
+            std::cout << 11 << std::endl;
+            //trade_queue_.emplace(true, book_->get_best_ask_price());
+            log_stats(*book_);
+        } else if (imbalance < 0 && book_->get_mid_price() > book_->vwap_ && position_ > -max_pos_) {
             execute_trade(false, book_->get_best_bid_price(), 1);
-            trade_queue_.emplace(false, book_->get_best_bid_price());
+            std::cout << 11 << std::endl;
+
+            //trade_queue_.emplace(false, book_->get_best_bid_price());
+            log_stats(*book_);
         }
 
         update_theo_values();
@@ -71,19 +74,20 @@ public:
     }
 
 
-    void execute_trade(bool is_buy, int32_t price, int size) override {
+    void execute_trade(bool is_buy, int32_t price, int32_t trade_size) override {
         if (is_buy) {
-            position_ += size;
-            buy_qty_ += size;
-            real_total_buy_px_ += price * size;
+            trade_queue_.emplace(true, price);
+            position_ += 1;
+            buy_qty_ += 1;
+            real_total_buy_px_ += price * 1;
         } else {
-            position_ -= size;
-            sell_qty_ += size;
-            real_total_sell_px_ += price * size;
+            trade_queue_.emplace(false, price);
+            position_ -= 1;
+            sell_qty_ += 1;
+            real_total_sell_px_ += price * 1;
         }
         fees_ += FEES_PER_SIDE_;
     }
-
 
 
     void reset() override {
@@ -91,5 +95,49 @@ public:
         imbalance_mean_ = 0.0;
         imbalance_variance_ = 0.0;
         update_count_ = 0;
+    }
+
+
+    void close_positions() override {
+        int initial_position = position_;
+
+        if (position_ != 0) {
+            while (position_ > 0) {
+                int32_t close_price = book_->get_best_bid_price();
+
+                execute_trade(false, close_price, 1);
+
+                log_stats(*book_);
+
+                update_theo_values();
+                calculate_pnl();
+            }
+
+
+            while (position_ < 0) {
+                int32_t close_price = book_->get_best_ask_price();
+
+                execute_trade(true, close_price, 1);
+
+                log_stats(*book_);
+
+                update_theo_values();
+                calculate_pnl();
+            }
+
+            if (initial_position != 0) {
+                std::string timestamp = book_->get_formatted_time_fast();
+                logger_->log(
+                    timestamp,
+                    book_->get_best_bid_price(),
+                    book_->get_best_ask_price(),
+                    position_,
+                    buy_qty_ + sell_qty_,
+                    pnl_
+                );
+            }
+
+            assert(position_ == 0);
+        }
     }
 };

@@ -16,8 +16,8 @@ ConcurrentBacktester::~ConcurrentBacktester() {
 }
 
 void ConcurrentBacktester::add_instrument(const std::string& instrument_id,
-                                         const std::vector<message>& messages,
-                                         const std::vector<message>& train_messages,
+                                         const std::vector<book_message>& messages,
+                                         const std::vector<book_message>& train_messages,
                                          const std::string& backtest_file,
                                          const std::string& train_file) {
     auto& config = instruments_[instrument_id];
@@ -56,6 +56,7 @@ void ConcurrentBacktester::start_backtest(size_t strategy_index) {
     }
 
     std::vector<std::future<void>> futures;
+
 
     for(auto& [id, config] : instruments_) {
         futures.emplace_back(std::async(std::launch::async, [this, &config, strategy_index]() {

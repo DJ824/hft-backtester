@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -16,7 +15,7 @@ class LinearModelStrategy : public Strategy {
 protected:
     static constexpr int MAX_LAG_ = 5;
     static constexpr int FORECAST_WINDOW_ = 60;
-    static constexpr double THRESHOLD_ = 10;
+    int THRESHOLD_;
     static constexpr int TRADE_SIZE_ = 1;
     std::mutex fit_mutex_;
     std::mutex log_mutex_;
@@ -82,6 +81,13 @@ public:
         model_coefficients_.resize(MAX_LAG_ + 2, 0.0);
         name_ = "linear_model_strat";
         req_fitting_ = true;
+        if (instrument_id == "es") {
+            POINT_VALUE_ = 5;
+            THRESHOLD_ = 2;
+        } else {
+            POINT_VALUE_ = 2;
+            THRESHOLD_ = 20;
+        }
     }
 
     void execute_trade(bool is_buy, int32_t price, int32_t trade_size) override {
@@ -175,8 +181,6 @@ public:
 
         {
             std::lock_guard<std::mutex> log_lock(log_mutex_);
-            std::cout << "[" << std::this_thread::get_id() << "] model coefficients for "
-                      << symbol_ << ":\n";
 
             for (size_t i = 0; i < model_coefficients_.size(); ++i) {
                 std::cout << "coeff[" << i << "]: " << model_coefficients_[i] << std::endl;
@@ -185,4 +189,76 @@ public:
 
     }
 
+    void close_positions() override {
+        int initial_position = position_;
+
+        if (position_ != 0) {
+            while (position_ > 0) {
+                int32_t close_price = book_->get_best_bid_price();
+
+                execute_trade(false, close_price, 1);
+
+                log_stats(*book_);
+
+                update_theo_values();
+                calculate_pnl();
+            }
+
+
+            while (position_ < 0) {
+                int32_t close_price = book_->get_best_ask_price();
+
+                execute_trade(true, close_price, 1);
+
+                log_stats(*book_);
+
+                update_theo_values();
+                calculate_pnl();
+            }
+
+            if (initial_position != 0) {
+                std::string timestamp = book_->get_formatted_time_fast();
+                logger_->log(
+                    timestamp,
+                    book_->get_best_bid_price(),
+                    book_->get_best_ask_price(),
+                    position_,
+                    buy_qty_ + sell_qty_,
+                    pnl_
+                );
+            }
+
+            assert(position_ == 0);
+        }
+    }
+
 };
+
+/*
+*2024-08-15 11:43:06.268 | instrument: nq | position: 0 | bid/ask: 1977125/1977375 | pnl: -32613.00
+2024-08-15 12:01:25.391 | instrument: nq | position: -1 | bid/ask: 1975825/1976100 | pnl: -32914.00
+2024-08-15 13:02:21.242 | instrument: nq | position: 0 | bid/ask: 1976575/1976850 | pnl: -34965.00
+2024-08-15 13:13:19.100 | instrument: nq | position: 1 | bid/ask: 1976300/1976475 | pnl: -34966.00
+2024-08-15 13:29:37.057 | instrument: nq | position: 0 | bid/ask: 1977250/1977450 | pnl: -33417.00
+2024-08-15 13:29:38.191 | instrument: nq | position: -1 | bid/ask: 1977200/1977925 | pnl: -33418.00
+2024-08-15 15:16:03.051 | instrument: nq | position: 0 | bid/ask: 1981175/1981400 | pnl: -41769.00
+2024-08-15 15:31:07.166 | instrument: nq | position: -1 | bid/ask: 1981550/1981775 | pnl: -41820.00
+[0x16f7cf000] nq completed
+2024-08-15 15:59:06.006 | instrument: nq | position: 0 | bid/ask: 1979850/1980975 | pnl: -40671.00
+2024-08-15 15:59:56.090 | instrument: nq | position: 1 | bid/ask: 1981575/1982800 | pnl: -40672.00
+2024-08-15 16:00:00.015 | instrument: nq | position: 0 | bid/ask: 1981625/1982800 | pnl: -43023.00
+2024-08-15 16:00:00.015 | instrument: nq | position: 0 | bid/ask: 1981625/1982800 | pnl: -43024.00
+coeff[0]: -26.11
+coeff[1]: 0.03
+coeff[2]: 0.02
+coeff[3]: 0.02
+coeff[4]: 0.02
+coeff[5]: 0.02
+coeff[6]: 0.08
+[0x16f513000] es: training complete
+2024-08-02 09:30:06.002 | instrument: es | position: -1 | bid/ask: 540050/540075 | pnl: 0.00
+[0x16f513000] es completed
+backtest complete
+2024-08-02 16:00:00.000 | instrument: es | position: 0 | bid/ask: 537625/537650 | pnl: 11999.00
+2024-08-02 16:00:00.000 | instrument: es | position: 0 | bid/ask: 537625/537650 | pnl: 11998.00
+*/

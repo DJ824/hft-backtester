@@ -89,7 +89,7 @@ private:
     [[nodiscard]] bool verify_message_consistency() const { return true; }
 
 public:
-    std::vector<message> message_stream_;
+    std::vector<book_message> message_stream_;
 
     explicit Parser(const std::string& file_path)
             : file_path_(file_path), mapped_file_(nullptr), file_size_(0) {

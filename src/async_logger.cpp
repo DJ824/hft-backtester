@@ -84,7 +84,7 @@ void AsyncLogger::csv_loop() {
             std::string log_line = format_log_entry(*entry);
             write_to_buffer(log_line);
 
-            entries_since_flush++;
+            ++entries_since_flush;
             if (entries_since_flush >= FLUSH_BATCH_SIZE ||
                 (last_flush_time != entry->timestamp.substr(0, 17))) {
                 flush_buffer();

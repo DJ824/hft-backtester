@@ -5,15 +5,16 @@
 #include <iomanip>
 #include "../include/concurrent_backtest.h"
 #include "parser.cpp"
+#include "../include/message.h"
 #include <databento/historical.hpp>
 
 using namespace databento;
 
-std::vector<std::string> get_available_strategies() {
+inline std::vector<std::string> get_available_strategies() {
     return {"imbalance_strat", "linear_model_strat"};
 }
 
-std::vector<std::string> get_available_data_files() {
+inline std::vector<std::string> get_available_data_files() {
     std::vector<std::string> files;
     const std::filesystem::path data_path = std::filesystem::current_path() / ".." / ".." / "data";
 
@@ -31,7 +32,7 @@ std::vector<std::string> get_available_data_files() {
     return files;
 }
 
-std::vector<std::string> filter_files_by_prefix(const std::vector<std::string> &files,
+inline std::vector<std::string> filter_files_by_prefix(const std::vector<std::string> &files,
                                                 const std::string &prefix) {
     std::vector<std::string> filtered;
     std::copy_if(files.begin(), files.end(), std::back_inserter(filtered),
@@ -41,7 +42,7 @@ std::vector<std::string> filter_files_by_prefix(const std::vector<std::string> &
     return filtered;
 }
 
-message convert_mbo_to_message(const MboMsg &mbo) {
+inline book_message convert_mbo_to_message(const MboMsg &mbo) {
     char action;
     switch (mbo.action) {
         case Action::Add:
@@ -67,7 +68,7 @@ message convert_mbo_to_message(const MboMsg &mbo) {
             mbo.hd.ts_event.time_since_epoch()
     ).count();
 
-    return message(
+    return book_message(
             mbo.order_id,
             ts_nanos,
             static_cast<uint32_t>(mbo.size),
@@ -144,7 +145,7 @@ int main() {
                             (base_path / backtest_file).string());
                     data_parser->parse();
 
-                    std::vector<message> train_messages;
+                    std::vector<book_message> train_messages;
                     std::string train_file;
                     if (strategy_index == 1) {
                         std::cout << "select training file: ";
@@ -199,7 +200,7 @@ int main() {
                             .SetKey(api_key)
                             .Build();
 
-                    std::vector<message> backtest_messages;
+                    std::vector<book_message> backtest_messages;
                     auto process_message = [&backtest_messages](const Record &record) {
                         const auto &mbo_msg = record.Get<MboMsg>();
                         backtest_messages.push_back(convert_mbo_to_message(mbo_msg));
@@ -220,7 +221,7 @@ int main() {
                     );
                     std::cout << "received " << backtest_messages.size() << " messages for backtest\n";
 
-                    std::vector<message> train_messages;
+                    std::vector<book_message> train_messages;
                     if (strategy_index == 1) {
                         auto train_client = HistoricalBuilder{}
                                 .SetKey(api_key)

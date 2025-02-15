@@ -4,8 +4,8 @@
 
 Backtester::Backtester(std::shared_ptr<ConnectionPool> pool,
                        const std::string& instrument_id,
-                       const std::vector<message>& messages,
-                       const std::vector<message>& train_messages)
+                       const std::vector<book_message>& messages,
+                       const std::vector<book_message>& train_messages)
         : connection_pool_(pool)
         , instrument_id_(instrument_id)
         , messages_(messages)
@@ -132,7 +132,6 @@ void Backtester::run_backtest() {
         const auto& msg = messages_[current_message_index_];
         book_->process_msg(msg);
 
-
         std::string curr_time = book_->get_formatted_time_fast();
         int64_t curr_seconds = parse_time(curr_time);
 
@@ -148,6 +147,7 @@ void Backtester::run_backtest() {
         }
 
         if (curr_time >= end_time_) {
+            strategy_->close_positions();
             break;
         }
 
@@ -163,11 +163,21 @@ void Backtester::reset_state() {
     current_message_index_ = 0;
     train_message_index_ = 0;
     first_update_ = false;
-
+    book_.reset();
 
     train_book_.reset();
 
     if (strategy_) {
         strategy_->reset();
+    }
+}
+
+void Backtester::run_multiday_backtest() {
+    while (!trading_days_.empty()) {
+        current_day_ = std::move(trading_days_.front());
+        trading_days_.pop();
+
+        start_time_ = current_day_.start_time_;
+        end_time_ = current_day_.end_time_;
     }
 }
