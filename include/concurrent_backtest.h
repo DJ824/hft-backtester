@@ -13,8 +13,8 @@ private:
     struct InstrumentConfig {
         std::string instrument_id;
         std::unique_ptr<Backtester> backtester;
-        std::vector<message> messages;
-        std::vector<message> train_messages;
+        std::vector<book_message> messages;
+        std::vector<book_message> train_messages;
         int32_t pnl{0};
         std::string backtest_file;
         std::string train_file;
@@ -37,8 +37,8 @@ public:
     ConcurrentBacktester& operator=(const ConcurrentBacktester&) = delete;
 
     void add_instrument(const std::string& instrument_id,
-                        const std::vector<message>& messages,
-                        const std::vector<message>& train_messages = {},
+                        const std::vector<book_message>& messages,
+                        const std::vector<book_message>& train_messages = {},
                         const std::string& backtest_file = "",
                         const std::string& train_file = "");
     void start_backtest(size_t strategy_index);

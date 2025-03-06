@@ -6,8 +6,6 @@
 #include <chrono>
 #include <unistd.h>
 
-
-
 AsyncLogger::AsyncLogger(Connection* connection,
                          const std::string& csv_file,
                          const std::string& instrument_id,

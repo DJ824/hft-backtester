@@ -18,13 +18,13 @@ protected:
     float fees_;
     int32_t pnl_;
     static constexpr int max_pos_ = 1;
-    int32_t POINT_VALUE_ = 5;
+    int32_t POINT_VALUE_;
     static constexpr int32_t FEES_PER_SIDE_ = 1;
     int32_t prev_pnl_;
     std::unique_ptr<AsyncLogger> logger_;
     std::shared_ptr<ConnectionPool> connection_pool_;
     Orderbook* book_;
-    char symbol_[2];
+    std::string id_;
 
     virtual void update_theo_values() = 0;
     virtual void calculate_pnl() = 0;
@@ -59,6 +59,7 @@ public:
 
     std::queue<std::tuple<bool, int32_t>> trade_queue_;
     virtual void log_stats(const Orderbook& book) = 0;
+    virtual void close_positions() = 0;
 
     std::string name_;
     bool req_fitting_;

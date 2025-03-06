@@ -18,7 +18,6 @@ Backtester::Backtester(std::shared_ptr<ConnectionPool> pool,
     train_book_ = std::make_unique<Orderbook>();
 }
 
-
 Backtester::~Backtester() {
     stop_backtest();
 }

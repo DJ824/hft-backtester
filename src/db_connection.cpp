@@ -26,7 +26,7 @@ Connection::~Connection() {
     }
 
     if (sock_ != -1) {
-        ::close(sock_);
+        close(sock_);
     }
 }
 
@@ -103,3 +103,4 @@ void Connection::reconnect() {
 }
 
 void Connection::send_trade_log(const std::string &log_entry) { trade_log_queue_->enqueue(log_entry); }
+
