@@ -37,8 +37,8 @@ public:
     ConcurrentBacktester& operator=(const ConcurrentBacktester&) = delete;
 
     void add_instrument(const std::string& instrument_id,
-                        const std::vector<book_message>& messages,
-                        const std::vector<book_message>& train_messages = {},
+                        std::vector<book_message>&& messages,
+                        std::vector<book_message>&& train_messages = {},
                         const std::string& backtest_file = "",
                         const std::string& train_file = "");
     void start_backtest(size_t strategy_index);

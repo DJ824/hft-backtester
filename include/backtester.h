@@ -17,8 +17,8 @@ class Backtester {
 public:
     Backtester(std::shared_ptr<ConnectionPool> pool,
                const std::string& instrument_id,
-               const std::vector<book_message>& messages,
-               const std::vector<book_message>& train_messages = {});
+                std::vector<book_message>&& messages,
+                std::vector<book_message>&& train_messages = {});
     ~Backtester();
 
     void create_strategy(size_t strategy_index);

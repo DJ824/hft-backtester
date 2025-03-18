@@ -166,8 +166,8 @@ int main() {
 
                     multi_backtest->add_instrument(
                             prefix,
-                            data_parser->message_stream_,
-                            train_messages,
+                            std::move(data_parser->message_stream_),
+                            std::move(train_messages),
                             backtest_file,
                             train_file
                     );
@@ -250,8 +250,8 @@ int main() {
 
                     multi_backtest->add_instrument(
                             prefix,
-                            backtest_messages,
-                            train_messages,
+                            std::move(backtest_messages),
+                            std::move(train_messages),
                             backtest_date,
                             train_date
                     );

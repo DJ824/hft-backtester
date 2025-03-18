@@ -4,12 +4,12 @@
 
 Backtester::Backtester(std::shared_ptr<ConnectionPool> pool,
                        const std::string& instrument_id,
-                       const std::vector<book_message>& messages,
-                       const std::vector<book_message>& train_messages)
+                        std::vector<book_message>&& messages,
+                        std::vector<book_message>&& train_messages)
         : connection_pool_(pool)
         , instrument_id_(instrument_id)
-        , messages_(messages)
-        , train_messages_(train_messages)
+        , messages_(std::move(messages))
+        , train_messages_(std::move(train_messages))
         , first_update_(false)
         , current_message_index_(0)
         , train_message_index_(0)

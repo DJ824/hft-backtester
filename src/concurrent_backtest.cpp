@@ -16,22 +16,22 @@ ConcurrentBacktester::~ConcurrentBacktester() {
 }
 
 void ConcurrentBacktester::add_instrument(const std::string& instrument_id,
-                                         const std::vector<book_message>& messages,
-                                         const std::vector<book_message>& train_messages,
+                                        std::vector<book_message>&& messages,
+                                        std::vector<book_message>&& train_messages,
                                          const std::string& backtest_file,
                                          const std::string& train_file) {
     auto& config = instruments_[instrument_id];
     config.instrument_id = instrument_id;
-    config.messages = messages;
-    config.train_messages = train_messages;
+    config.messages = std::move(messages);
+    config.train_messages = std::move(train_messages);
     config.backtest_file = backtest_file;
     config.train_file = train_file;
 
     config.backtester = std::make_unique<Backtester>(
             connection_pool_,
             instrument_id,
-            config.messages,
-            config.train_messages
+            std::move(config.messages),
+            std::move(config.train_messages)
     );
 }
 
