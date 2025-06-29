@@ -5,15 +5,23 @@
 #include <optional>
 
 template <typename T, size_t SIZE>
-class LockFreeQueue {
+class LockFreeQueue
+{
 private:
-    struct alignas(64) Node {
+    struct alignas(64) Node
+    {
         std::atomic<bool> written{false};
         alignas(T) unsigned char storage[sizeof(T)];
 
-        Node() noexcept : written(false) {}
-        ~Node() {
-            if (written.load(std::memory_order_relaxed)) {
+        Node() noexcept :
+            written(false)
+        {
+        }
+
+        ~Node()
+        {
+            if (written.load(std::memory_order_relaxed))
+            {
                 reinterpret_cast<T*>(storage)->~T();
             }
         }
@@ -28,15 +36,18 @@ private:
     alignas(64) std::array<Node, SIZE> buffer_;
 
 public:
-     LockFreeQueue() = default;
+    LockFreeQueue() = default;
 
-    ~LockFreeQueue() {
+    ~LockFreeQueue()
+    {
         size_t curr_head = head_.load(std::memory_order_relaxed);
         size_t curr_tail = tail_.load(std::memory_order_relaxed);
 
-        while (curr_head != curr_tail) {
+        while (curr_head != curr_tail)
+        {
             Node& node = buffer_[curr_head];
-            if (node.written.load(std::memory_order_relaxed)) {
+            if (node.written.load(std::memory_order_relaxed))
+            {
                 reinterpret_cast<T*>(node.storage)->~T();
                 node.written.store(false, std::memory_order_relaxed);
             }
@@ -48,27 +59,33 @@ public:
     LockFreeQueue(const LockFreeQueue&) = delete;
     LockFreeQueue& operator=(const LockFreeQueue&) = delete;
 
-    template<typename U>
+    template <typename U>
     __attribute__((always_inline))
-    bool enqueue(U&& item) {
-        while (true) {
+    bool enqueue(U&& item)
+    {
+        while (true)
+        {
             size_t curr_tail = tail_.load(std::memory_order_relaxed);
             size_t next_tail = (curr_tail + 1) % SIZE;
 
-            if (next_tail == head_.load(std::memory_order_acquire)) {
+            if (next_tail == head_.load(std::memory_order_acquire))
+            {
                 return false;
             }
 
-            if (buffer_[curr_tail].written.load(std::memory_order_relaxed)) {
+            if (buffer_[curr_tail].written.load(std::memory_order_relaxed))
+            {
                 continue;
             }
 
             // first check to see if another thread already modified the tail
-            if (!tail_.compare_exchange_weak(curr_tail, next_tail, std::memory_order_acq_rel, std::memory_order_relaxed)) {
+            if (!tail_.compare_exchange_weak(curr_tail, next_tail, std::memory_order_acq_rel,
+                                             std::memory_order_relaxed))
+            {
                 continue;
             }
 
-            new (buffer_[curr_tail].storage) T(std::forward<U>(item));
+            new(buffer_[curr_tail].storage) T(std::forward<U>(item));
             buffer_[curr_tail].written.store(true, std::memory_order_release);
             return true;
 
@@ -77,19 +94,25 @@ public:
 
 
     __attribute__((always_inline))
-    std::optional<T> dequeue() {
-        while (true) {
-           size_t curr_head = head_.load(std::memory_order_relaxed);
+    std::optional<T> dequeue()
+    {
+        while (true)
+        {
+            size_t curr_head = head_.load(std::memory_order_relaxed);
 
-            if (curr_head == tail_.load(std::memory_order_acquire)) {
+            if (curr_head == tail_.load(std::memory_order_acquire))
+            {
                 return std::nullopt;
             }
 
-            if (!buffer_[curr_head].written.load(std::memory_order_acquire)) {
+            if (!buffer_[curr_head].written.load(std::memory_order_acquire))
+            {
                 continue;
             }
 
-            if (!head_.compare_exchange_weak(curr_head, (curr_head + 1) % SIZE, std::memory_order_release, std::memory_order_relaxed)) {
+            if (!head_.compare_exchange_weak(curr_head, (curr_head + 1) % SIZE, std::memory_order_release,
+                                             std::memory_order_relaxed))
+            {
                 continue;
             }
 
@@ -104,13 +127,17 @@ public:
     bool empty() { return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire); }
 
     __attribute__((always_inline))
-    size_t size() const {
+    size_t size() const
+    {
         size_t head = head_.load(std::memory_order_acquire);
         size_t tail = tail_.load(std::memory_order_acquire);
 
-        if (tail >= head) {
+        if (tail >= head)
+        {
             return tail - head;
-        } else {
+        }
+        else
+        {
             return SIZE - (head - tail);
         }
     }

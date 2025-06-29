@@ -1,16 +1,18 @@
 #pragma once
-#include <memory>
-#include <map>
-#include <atomic>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 #include "backtester.h"
 #include "connection_pool.h"
+#include <atomic>
+#include <condition_variable>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <thread>
 
-class ConcurrentBacktester {
+class ConcurrentBacktester
+{
 private:
-    struct InstrumentConfig {
+    struct InstrumentConfig
+    {
         std::string instrument_id;
         std::unique_ptr<Backtester> backtester;
         std::vector<book_message> messages;

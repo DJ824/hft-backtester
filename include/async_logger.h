@@ -7,9 +7,11 @@
 #include "db_connection.h"
 #include "lock_free_queue.h"
 
-class AsyncLogger {
+class AsyncLogger
+{
 private:
-    struct LogEntry {
+    struct LogEntry
+    {
         std::string timestamp;
         int32_t bid;
         int32_t ask;

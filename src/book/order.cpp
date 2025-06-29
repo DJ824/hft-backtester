@@ -5,7 +5,8 @@
 
 class Limit;
 
-class Order {
+class Order
+{
 public:
     uint64_t id_;
     int32_t price_;
@@ -17,10 +18,16 @@ public:
     Limit* parent_;
     bool filled_;
 
-    Order(uint64_t id, int32_t price, uint32_t size, bool side, uint64_t unix_time)
-            : id_(id), size(size), price_(price), side_(side), unix_time_(unix_time),
-              filled_(false), next_(nullptr), prev_(nullptr), parent_(nullptr) {}
+    Order(uint64_t id, int32_t price, uint32_t size, bool side,
+          uint64_t unix_time) :
+        id_(id), price_(price), size(size), side_(side), unix_time_(unix_time),
+        next_(nullptr), prev_(nullptr), parent_(nullptr), filled_(false)
+    {
+    }
 
-    Order() : id_(0), size(0), price_(0), side_(true), unix_time_(0),
-              filled_(false), next_(nullptr), prev_(nullptr), parent_(nullptr) {}
+    Order() :
+        id_(0), price_(0), size(0), side_(true), unix_time_(0), next_(nullptr),
+        prev_(nullptr), parent_(nullptr), filled_(false)
+    {
+    }
 };

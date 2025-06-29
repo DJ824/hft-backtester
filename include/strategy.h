@@ -6,7 +6,8 @@
 #include "../src/book/orderbook.cpp"
 #include <cstring>
 
-class Strategy {
+class Strategy
+{
 protected:
     int position_ = 0;
     int buy_qty_;
@@ -33,23 +34,25 @@ public:
     Strategy(std::shared_ptr<ConnectionPool> pool,
              const std::string& log_file_name,
              const std::string& instrument_id,
-             Orderbook* book)
-            : position_(0)
-            , buy_qty_(0)
-            , sell_qty_(0)
-            , real_total_buy_px_(0)
-            , real_total_sell_px_(0)
-            , theo_total_buy_px_(0)
-            , theo_total_sell_px_(0)
-            , fees_(0)
-            , pnl_(0)
-            , prev_pnl_(0)
-            , connection_pool_(pool)
-            , book_(book)
-            , req_fitting_(false) {
+             Orderbook* book) :
+        position_(0)
+        , buy_qty_(0)
+        , sell_qty_(0)
+        , real_total_buy_px_(0)
+        , real_total_sell_px_(0)
+        , theo_total_buy_px_(0)
+        , theo_total_sell_px_(0)
+        , fees_(0)
+        , pnl_(0)
+        , prev_pnl_(0)
+        , connection_pool_(pool)
+        , book_(book)
+        , req_fitting_(false)
+    {
 
         Connection* db_connection = connection_pool_->acquire_connection();
-        if (!db_connection) {
+        if (!db_connection)
+        {
             throw std::runtime_error("failed to acquire database connection for logger");
         }
 
@@ -66,7 +69,8 @@ public:
 
     virtual void fit_model() = 0;
 
-    virtual void reset() {
+    virtual void reset()
+    {
         position_ = 0;
         buy_qty_ = 0;
         sell_qty_ = 0;

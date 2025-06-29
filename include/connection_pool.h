@@ -8,8 +8,8 @@
 #include "db_connection.h"
 
 
-
-class ConnectionPool {
+class ConnectionPool
+{
 private:
     std::vector<std::unique_ptr<Connection>> connections_;
     std::queue<Connection*> available_connections_;

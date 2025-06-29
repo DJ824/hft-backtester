@@ -1,11 +1,12 @@
 #pragma once
-#include <memory>
-#include <vector>
-#include "strategy.h"
 #include "../src/book/orderbook.cpp"
 #include "message.h"
+#include "strategy.h"
+#include <memory>
+#include <vector>
 
-struct TradingDay {
+struct TradingDay
+{
     std::vector<book_message> messages_;
     std::string date_;
     std::string start_time_;
@@ -13,16 +14,18 @@ struct TradingDay {
     std::string file_;
 };
 
-class Backtester {
+class Backtester
+{
 public:
     Backtester(std::shared_ptr<ConnectionPool> pool,
                const std::string& instrument_id,
-                std::vector<book_message>&& messages,
-                std::vector<book_message>&& train_messages = {});
+               const std::vector<book_message>&& messages,
+               const std::vector<book_message>&& train_messages = {});
     ~Backtester();
 
     void create_strategy(size_t strategy_index);
-    void set_trading_times(const std::string& backtest_file, const std::string& train_file = "");
+    void set_trading_times(const std::string& backtest_file,
+                           const std::string& train_file = "");
     void train_model();
     void start_backtest();
     void stop_backtest();

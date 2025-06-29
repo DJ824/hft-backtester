@@ -7,11 +7,12 @@
 #include <cmath>
 #include <numeric>
 #include <Eigen/Dense>
-#include "strategy.h"
+#include "../../include/strategy.h"
 #include "../book/orderbook.cpp"
-#include "../include/async_logger.h"
+#include "../../include/async_logger.h"
 
-class LinearModelStrategy : public Strategy {
+class LinearModelStrategy : public Strategy
+{
 protected:
     static constexpr int MAX_LAG_ = 5;
     static constexpr int FORECAST_WINDOW_ = 60;
@@ -25,18 +26,20 @@ protected:
     double fees_ = 0.0;
 
 
-
-    [[nodiscard]] double predict_price_change() const {
+    [[nodiscard]] double predict_price_change() const
+    {
 
         size_t data_size = static_cast<int>(book_->voi_history_curr_.size());
 
-        if (data_size < MAX_LAG_ + 1) {
+        if (data_size < MAX_LAG_ + 1)
+        {
             return 0.0;
         }
 
         double prediction = model_coefficients_[0];
 
-        for (int i = 0; i <= MAX_LAG_; ++i) {
+        for (int i = 0; i <= MAX_LAG_; ++i)
+        {
             size_t index = data_size - 1 - i;
             auto voi = static_cast<double>(book_->voi_history_curr_[index]);
             prediction += model_coefficients_[i + 1] * voi;
@@ -48,55 +51,68 @@ protected:
         return prediction;
     }
 
-    void update_theo_values() override {
+    void update_theo_values() override
+    {
         int32_t bid_price = book_->get_best_bid_price();
         int32_t ask_price = book_->get_best_ask_price();
 
-        if (position_ == 0) {
+        if (position_ == 0)
+        {
             theo_total_buy_px_ = 0;
             theo_total_sell_px_ = 0;
-        } else if (position_ > 0) {
+        }
+        else if (position_ > 0)
+        {
             theo_total_sell_px_ = bid_price * std::abs(position_);
             theo_total_buy_px_ = 0;
-        } else if (position_ < 0) {
+        }
+        else if (position_ < 0)
+        {
             theo_total_buy_px_ = ask_price * std::abs(position_);
             theo_total_sell_px_ = 0;
         }
     }
 
-    void calculate_pnl() override {
+    void calculate_pnl() override
+    {
         pnl_ = POINT_VALUE_ * (real_total_sell_px_ + theo_total_sell_px_ -
-                               real_total_buy_px_ - theo_total_buy_px_) - fees_;
+            real_total_buy_px_ - theo_total_buy_px_) - fees_;
     }
 
-
 public:
-
     explicit LinearModelStrategy(std::shared_ptr<ConnectionPool> pool,
                                  const std::string& instrument_id,
-                                 Orderbook* book)
-            : Strategy(pool, "linear_model_strategy_log.csv", instrument_id, book),
-              forecast_window_(FORECAST_WINDOW_),
-              fees_(0.0) {
+                                 Orderbook* book) :
+        Strategy(pool, "linear_model_strategy_log.csv", instrument_id, book),
+        forecast_window_(FORECAST_WINDOW_),
+        fees_(0.0)
+    {
         model_coefficients_.resize(MAX_LAG_ + 2, 0.0);
         name_ = "linear_model_strat";
         req_fitting_ = true;
-        if (instrument_id == "es") {
+        if (instrument_id == "es")
+        {
             POINT_VALUE_ = 5;
             THRESHOLD_ = 2;
-        } else {
+        }
+        else
+        {
             POINT_VALUE_ = 2;
             THRESHOLD_ = 20;
         }
     }
 
-    void execute_trade(bool is_buy, int32_t price, int32_t trade_size) override {
-        if (is_buy) {
+    void execute_trade(bool is_buy, int32_t price, int32_t trade_size) override
+    {
+        if (is_buy)
+        {
             trade_queue_.emplace(true, price);
             position_ += TRADE_SIZE_;
             buy_qty_ += TRADE_SIZE_;
             real_total_buy_px_ += price * TRADE_SIZE_;
-        } else {
+        }
+        else
+        {
             trade_queue_.emplace(false, price);
             position_ -= TRADE_SIZE_;
             sell_qty_ += TRADE_SIZE_;
@@ -105,7 +121,8 @@ public:
         fees_ += FEES_PER_SIDE_;
     }
 
-    void log_stats(const Orderbook& book) override {
+    void log_stats(const Orderbook& book) override
+    {
         std::string timestamp = book.get_formatted_time_fast();
         int32_t bid = book.get_best_bid_price();
         int32_t ask = book.get_best_ask_price();
@@ -115,7 +132,8 @@ public:
     }
 
 
-    void on_book_update() override {
+    void on_book_update() override
+    {
 
         book_->calculate_voi_curr();
         book_->add_mid_price_curr();
@@ -125,12 +143,15 @@ public:
         int32_t bid_price = book_->get_best_bid_price();
         int32_t ask_price = book_->get_best_ask_price();
 
-        if (predicted_change >= THRESHOLD_ && position_ < max_pos_) {
+        if (predicted_change >= THRESHOLD_ && position_ < max_pos_)
+        {
             //std::cout << predicted_change << std::endl;
             //std::cout << book_->get_formatted_time_fast() << std::endl;
             execute_trade(true, ask_price, 1);
             log_stats(*book_);
-        } else if (predicted_change <= -THRESHOLD_ && position_ > -max_pos_) {
+        }
+        else if (predicted_change <= -THRESHOLD_ && position_ > -max_pos_)
+        {
             //std::cout << predicted_change << std::endl;
             //std::cout << book_->get_formatted_time_fast() << std::endl;
             execute_trade(false, bid_price, 1);
@@ -142,7 +163,8 @@ public:
 
     }
 
-    void reset() override {
+    void reset() override
+    {
         Strategy::reset();
         model_coefficients_.clear();
         model_coefficients_.resize(MAX_LAG_ + 2, 0.0);
@@ -152,24 +174,29 @@ public:
         prev_pnl_ = 0.0;
     }
 
-    void fit_model() override {
+    void fit_model() override
+    {
         std::lock_guard<std::mutex> lock(fit_mutex_);
         int n = static_cast<int>(book_->voi_history_.size()) - forecast_window_ - MAX_LAG_;
 
         Eigen::MatrixXd X(n, MAX_LAG_ + 2);
         Eigen::VectorXd y(n);
 
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < n; ++i)
+        {
             X(i, 0) = 1.0;
 
-            for (int j = 0; j <= MAX_LAG_; ++j) {
+            for (int j = 0; j <= MAX_LAG_; ++j)
+            {
                 double voi = static_cast<double>(book_->voi_history_[i + j]);
                 X(i, j + 1) = voi;
             }
 
             double avg_mid_change = 0.0;
-            for (int k = 1; k <= forecast_window_; ++k) {
-                avg_mid_change += static_cast<double>(book_->mid_prices_[i + MAX_LAG_ + k] - book_->mid_prices_[i + MAX_LAG_]);
+            for (int k = 1; k <= forecast_window_; ++k)
+            {
+                avg_mid_change += static_cast<double>(book_->mid_prices_[i + MAX_LAG_ + k] - book_->mid_prices_[i +
+                    MAX_LAG_]);
             }
             avg_mid_change /= forecast_window_;
             y(i) = avg_mid_change;
@@ -182,18 +209,22 @@ public:
         {
             std::lock_guard<std::mutex> log_lock(log_mutex_);
 
-            for (size_t i = 0; i < model_coefficients_.size(); ++i) {
+            for (size_t i = 0; i < model_coefficients_.size(); ++i)
+            {
                 std::cout << "coeff[" << i << "]: " << model_coefficients_[i] << std::endl;
             }
         }
 
     }
 
-    void close_positions() override {
+    void close_positions() override
+    {
         int initial_position = position_;
 
-        if (position_ != 0) {
-            while (position_ > 0) {
+        if (position_ != 0)
+        {
+            while (position_ > 0)
+            {
                 int32_t close_price = book_->get_best_bid_price();
 
                 execute_trade(false, close_price, 1);
@@ -205,7 +236,8 @@ public:
             }
 
 
-            while (position_ < 0) {
+            while (position_ < 0)
+            {
                 int32_t close_price = book_->get_best_ask_price();
 
                 execute_trade(true, close_price, 1);
@@ -216,7 +248,8 @@ public:
                 calculate_pnl();
             }
 
-            if (initial_position != 0) {
+            if (initial_position != 0)
+            {
                 std::string timestamp = book_->get_formatted_time_fast();
                 logger_->log(
                     timestamp,
@@ -225,7 +258,7 @@ public:
                     position_,
                     buy_qty_ + sell_qty_,
                     pnl_
-                );
+                    );
             }
 
             assert(position_ == 0);

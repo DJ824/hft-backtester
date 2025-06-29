@@ -1,21 +1,24 @@
 #pragma once
-#include <string>
-#include <thread>
-#include <atomic>
-#include <mutex>
-#include <memory>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include "lock_free_queue.h"
+#include <atomic>
+#include <memory>
+#include <mutex>
+#include <netinet/in.h>
+#include <string>
+#include <sys/socket.h>
+#include <thread>
+#include <utility>
+#include <vector>
 
-struct OrderBookUpdate {
+struct OrderBookUpdate
+{
     std::vector<std::pair<int32_t, uint64_t>> bids_;
     std::vector<std::pair<int32_t, uint64_t>> offers_;
     uint64_t timestamp_;
 };
 
-
-class Connection {
+class Connection
+{
 private:
     int sock_{-1};
     struct sockaddr_in serv_addr_{};

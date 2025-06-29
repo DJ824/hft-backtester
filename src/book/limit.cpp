@@ -1,7 +1,9 @@
+#pragma once
 #include <cstdint>
 #include "order.cpp"
 
-class Limit {
+class Limit
+{
 public:
     int32_t price_;
     uint64_t volume_;
@@ -10,18 +12,26 @@ public:
     Order* tail_;
     bool side_;
 
-    explicit Limit(int32_t price)
-            : price_(price), volume_(0), num_orders_(0), head_(nullptr), tail_(nullptr) {}
+    explicit Limit(int32_t price) :
+        price_(price), volume_(0), num_orders_(0), head_(nullptr), tail_(nullptr)
+    {
+    }
 
-    explicit Limit(Order* new_order)
-            : price_(new_order->price_), volume_(new_order->size),
-              num_orders_(1), head_(new_order), tail_(new_order) {}
+    explicit Limit(Order* new_order) :
+        price_(new_order->price_), volume_(new_order->size),
+        num_orders_(1), head_(new_order), tail_(new_order)
+    {
+    }
 
-    inline void add_order(Order* new_order) {
-        if (head_ == nullptr && tail_ == nullptr) {
+    inline void add_order(Order* new_order)
+    {
+        if (head_ == nullptr && tail_ == nullptr)
+        {
             head_ = new_order;
             tail_ = new_order;
-        } else {
+        }
+        else
+        {
             tail_->next_ = new_order;
             new_order->prev_ = tail_;
             tail_ = tail_->next_;
@@ -32,35 +42,45 @@ public:
         new_order->parent_ = this;
     }
 
-    inline void remove_order(Order* target) {
-        if (!target || !head_) {
+    inline void remove_order(Order* target)
+    {
+        if (!target || !head_)
+        {
             return;
         }
 
         volume_ -= target->size;
         --num_orders_;
 
-        if (head_ == tail_ && head_ == target) {
+        if (head_ == tail_ && head_ == target)
+        {
             head_ = nullptr;
             tail_ = nullptr;
         }
-        else if (head_ == target) {
+        else if (head_ == target)
+        {
             head_ = head_->next_;
-            if (head_) {
+            if (head_)
+            {
                 head_->prev_ = nullptr;
             }
         }
-        else if (tail_ == target) {
+        else if (tail_ == target)
+        {
             tail_ = tail_->prev_;
-            if (tail_) {
+            if (tail_)
+            {
                 tail_->next_ = nullptr;
             }
         }
-        else {
-            if (target->prev_) {
+        else
+        {
+            if (target->prev_)
+            {
                 target->prev_->next_ = target->next_;
             }
-            if (target->next_) {
+            if (target->next_)
+            {
                 target->next_->prev_ = target->prev_;
             }
         }
@@ -74,7 +94,8 @@ public:
     void set(int32_t price) { this->price_ = price; }
     bool is_empty() { return head_ == nullptr && tail_ == nullptr; }
 
-    void reset() {
+    void reset()
+    {
         price_ = 0;
         volume_ = 0;
         num_orders_ = 0;

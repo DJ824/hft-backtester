@@ -6,7 +6,7 @@
 #include <memory>
 #include <iostream>
 #include <filesystem>
-#include "message.h"
+#include "../include/message.h"
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -14,37 +14,49 @@
 #include <stdexcept>
 #include <cstring>
 
-class ParserException : public std::runtime_error {
+class ParserException : public std::runtime_error
+{
 public:
-    explicit ParserException(const std::string& msg) : std::runtime_error(msg) {}
+    explicit ParserException(const std::string& msg) :
+        std::runtime_error(msg)
+    {
+    }
 };
 
-class Parser {
+class Parser
+{
 private:
     std::string file_path_;
     char* mapped_file_;
     size_t file_size_;
 
-    void parse_mapped_data() {
+    void parse_mapped_data()
+    {
         char* current = mapped_file_;
         char* end = mapped_file_ + file_size_;
 
-        for (int i = 0; i < 2 && current < end; ++i) {
+        for (int i = 0; i < 2 && current < end; ++i)
+        {
             current = static_cast<char*>(memchr(current, '\n', end - current));
-            if (current) ++current;
-            else throw ParserException("invalid file format: missing header");
+            if (current)
+                ++current;
+            else
+                throw ParserException("invalid file format: missing header");
         }
 
-        while (current < end) {
+        while (current < end)
+        {
             char* line_end = static_cast<char*>(memchr(current, '\n', end - current));
-            if (!line_end) line_end = end;
+            if (!line_end)
+                line_end = end;
 
             parse_line(current, line_end);
             current = line_end + 1;
         }
     }
 
-    void parse_line(const char* start, const char* end) {
+    void parse_line(const char* start, const char* end)
+    {
         uint64_t ts_event, order_id;
         int32_t price;
         uint32_t size;
@@ -77,8 +89,10 @@ private:
         message_stream_.emplace_back(order_id, ts_event, size, price, action, bid_or_ask);
     }
 
-    void cleanup() {
-        if (mapped_file_) {
+    void cleanup()
+    {
+        if (mapped_file_)
+        {
             munmap(mapped_file_, file_size_);
             mapped_file_ = nullptr;
         }
@@ -91,10 +105,12 @@ private:
 public:
     std::vector<book_message> message_stream_;
 
-    explicit Parser(const std::string& file_path)
-            : file_path_(file_path), mapped_file_(nullptr), file_size_(0) {
+    explicit Parser(const std::string& file_path) :
+        file_path_(file_path), mapped_file_(nullptr), file_size_(0)
+    {
 
-        if (!std::filesystem::exists(file_path)) {
+        if (!std::filesystem::exists(file_path))
+        {
             throw ParserException("file does not exist: " + file_path);
         }
 
@@ -103,18 +119,21 @@ public:
 
     ~Parser() { cleanup(); }
 
-    Parser(Parser&& other) noexcept
-            : file_path_(std::move(other.file_path_))
-            , mapped_file_(other.mapped_file_)
-            , file_size_(other.file_size_)
-            , message_stream_(std::move(other.message_stream_)) {
+    Parser(Parser&& other) noexcept :
+        file_path_(std::move(other.file_path_))
+        , mapped_file_(other.mapped_file_)
+        , file_size_(other.file_size_)
+        , message_stream_(std::move(other.message_stream_))
+    {
 
         other.mapped_file_ = nullptr;
         other.file_size_ = 0;
     }
 
-    Parser& operator=(Parser&& other) noexcept {
-        if (this != &other) {
+    Parser& operator=(Parser&& other) noexcept
+    {
+        if (this != &other)
+        {
             cleanup();
 
             file_path_ = std::move(other.file_path_);
@@ -131,16 +150,19 @@ public:
     Parser(const Parser&) = delete;
     Parser& operator=(const Parser&) = delete;
 
-    void parse() {
+    void parse()
+    {
         std::cout << "parsing messages" << std::endl;
 
         int fd = open(file_path_.c_str(), O_RDONLY);
-        if (fd == -1) {
+        if (fd == -1)
+        {
             throw ParserException("failed to open file: " + file_path_);
         }
 
         struct stat sb;
-        if (fstat(fd, &sb) == -1) {
+        if (fstat(fd, &sb) == -1)
+        {
             close(fd);
             throw ParserException("failed to get file stats");
         }
@@ -151,14 +173,18 @@ public:
                                                MAP_PRIVATE, fd, 0));
         close(fd);
 
-        if (mapped_file_ == MAP_FAILED) {
+        if (mapped_file_ == MAP_FAILED)
+        {
             mapped_file_ = nullptr;
             throw ParserException("failed to memory map file");
         }
 
-        try {
+        try
+        {
             parse_mapped_data();
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e)
+        {
             cleanup();
             throw;
         }
