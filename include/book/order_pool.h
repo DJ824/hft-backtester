@@ -35,7 +35,6 @@ public:
   }
 
   Order *get_order() {
-    // first check if we can reuse an order from the list, else we take from the memory block and cast
     if (freelist_) {
       Order *o = freelist_;
       freelist_ = freelist_->next_;

@@ -48,7 +48,7 @@ struct alignas(64) Limit {
     volume_ -= target->size;
   }
 
-private:
+  private:
   static constexpr std::size_t used = 4  + 4 + 2 * sizeof(Order *) + 1 ;
   static constexpr std::size_t PAD = 64 - used;
   std::byte _pad[PAD]{};

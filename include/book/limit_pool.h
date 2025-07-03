@@ -38,7 +38,6 @@ public:
     l->price_ = price;
     l->volume_ = 0;
     l->side_ = side;
-    l->head_ = l->tail_ = nullptr;
     return l;
   }
 

@@ -9,7 +9,7 @@ class Order {
 public:
   uint64_t id_;
   int32_t price_;
-  uint32_t size;  // Changed from signed int to uint32_t for consistency
+  uint32_t size;
   bool side_;
   uint64_t unix_time_;
   Order* next_;
