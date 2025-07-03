@@ -1,61 +1,60 @@
 #pragma once
-#include "order.h"
-#include <memory>
+#include <cstdint>
+#include <cstddef>
 #include <vector>
+#include <cstdlib>
+#include <new>
+#include "order.h"
 
 class OrderPool {
-private:
-  std::vector<std::unique_ptr<Order>> pool_;
-  std::vector<Order*> available_orders_;
+  static constexpr std::size_t PAGE_SIZE = 4096;
+
+  std::vector<std::byte *> pages_;
+  Order *freelist_ = nullptr;
+  std::byte *curr_ = nullptr;
+  std::byte *end_ = nullptr;
+
+  void alloc_page() {
+    void *mem = aligned_alloc(64, PAGE_SIZE);
+    if (!mem) {
+      throw std::bad_alloc{};
+    }
+    pages_.push_back(static_cast<std::byte *>(mem));
+    curr_ = static_cast<std::byte *>(mem);
+    end_ = curr_ + PAGE_SIZE;
+  }
 
 public:
-  inline explicit OrderPool(size_t initial_size) {
-    pool_.reserve(initial_size);
-    available_orders_.reserve(initial_size);
-    for (size_t i = 0; i < initial_size; ++i) {
-      pool_.push_back(std::make_unique<Order>());
-      available_orders_.push_back(pool_.back().get());
+  OrderPool() = default;
+
+  ~OrderPool() {
+    for (auto p : pages_) {
+      std::free(p);
     }
+
   }
 
-  __attribute__((always_inline))
-  inline Order* get_order() {
-    if (available_orders_.empty()) {
-      pool_.push_back(std::make_unique<Order>());
-      return pool_.back().get();
+  Order *get_order() {
+    // first check if we can reuse an order from the list, else we take from the memory block and cast
+    if (freelist_) {
+      Order *o = freelist_;
+      freelist_ = freelist_->next_;
+      return o;
     }
-    Order* order = available_orders_.back();
-    available_orders_.pop_back();
-    return order;
-  }
-
-  __attribute__((always_inline))
-  inline void return_order(Order* order) {
-    // Reset order state for reuse
-    order->id_ = 0;
-    order->price_ = 0;
-    order->size = 0;
-    order->side_ = true;
-    order->unix_time_ = 0;
-    order->next_ = nullptr;
-    order->prev_ = nullptr;
-    order->parent_ = nullptr;
-    order->filled_ = false;
-
-    available_orders_.push_back(order);
-  }
-
-  __attribute__((always_inline))
-  inline void reset() {
-    available_orders_.clear();
-    available_orders_.reserve(pool_.capacity());
-
-    // Return all orders to available pool
-    for (auto& order_ptr : pool_) {
-      available_orders_.push_back(order_ptr.get());
+    if (curr_ == end_) {
+      alloc_page();
     }
+
+    Order *o = reinterpret_cast<Order *>(curr_);
+    curr_ += sizeof(Order);
+    return o;
   }
 
-  inline size_t size() const { return pool_.size(); }
-  inline size_t available() const { return available_orders_.size(); }
+  void return_order(Order *order) {
+    order->next_ = freelist_;
+    freelist_ = order;
+  }
+
+  OrderPool(const OrderPool &) = delete;
+  OrderPool &operator=(const OrderPool &) = delete;
 };

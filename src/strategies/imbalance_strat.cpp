@@ -41,8 +41,8 @@ public:
     book_->calculate_imbalance();
     auto imbalance = book_->get_imbalance();
     auto vwap = book_->get_vwap();
-    std::cout << imbalance << " " << vwap << std::endl;
-    std::cout << book_->get_mid_price() << std::endl;
+    // std::cout << imbalance << " " << vwap << std::endl;
+    // std::cout << book_->get_mid_price() << std::endl;
 
     if (imbalance > 0 && book_->get_mid_price() < vwap &&
         position_ < max_pos_) {
