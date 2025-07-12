@@ -18,7 +18,7 @@ private:
   const size_t RANGE_;
   std::vector<Limit *> bids_;
   std::vector<Limit *> asks_;
-  PageMap order_lookup_{512};
+  PageMap order_lookup_{1024};
   OrderPool order_pool_;
   LimitPool limit_pool_;
   int32_t best_bid_idx_, best_ask_idx_;
@@ -42,7 +42,7 @@ private:
 
   template <bool Side>
   inline Limit *&slot(int32_t px) {
-    return Side ? asks_[get_ask_idx(px)] : bids_[get_bid_idx(px)];
+    return Side ? bids_[get_bid_idx(px)] : asks_[get_ask_idx(px)];
   }
 
   template <bool Side>
@@ -115,7 +115,7 @@ inline void Orderbook::process_msg(const book_message &m) {
   //         std::chrono::duration_cast<std::chrono::microseconds>(
   //             std::chrono::nanoseconds(m.time_)));
 
-  const bool is_bid = (m.side_ == 1);
+  const bool is_bid = m.side_ == 1;
 
   switch (m.action_) {
   case 'A':
@@ -160,11 +160,11 @@ inline void Orderbook::add_order(uint64_t id, int32_t price,
   limit->add_order(new_order);
 
   if constexpr (Side) {
-    best_ask_idx_ = std::min(best_ask_idx_,
-                             static_cast<int32_t>(get_ask_idx(price)));
-  } else {
     best_bid_idx_ = std::min(best_bid_idx_,
                              static_cast<int32_t>(get_bid_idx(price)));
+  } else {
+    best_ask_idx_ = std::min(best_ask_idx_,
+                             static_cast<int32_t>(get_ask_idx(price)));
   }
 }
 
@@ -215,9 +215,9 @@ inline void Orderbook::cancel_order(uint64_t id, int32_t price,
   }
 
   if constexpr (Side) {
-    asks_[get_ask_idx(limit->price_)] = nullptr;
-  } else {
     bids_[get_bid_idx(limit->price_)] = nullptr;
+  } else {
+    asks_[get_ask_idx(limit->price_)] = nullptr;
   }
 
   limit_pool_.release(limit);
@@ -227,13 +227,13 @@ inline void Orderbook::cancel_order(uint64_t id, int32_t price,
 template <bool Side>
 inline void Orderbook::adjust_bbo() {
   if constexpr (Side) {
-    while (best_ask_idx_ < static_cast<int32_t>(RANGE_) &&
-           asks_[best_ask_idx_] == nullptr)
-      ++best_ask_idx_;
-  } else {
     while (best_bid_idx_ < static_cast<int32_t>(RANGE_) &&
            bids_[best_bid_idx_] == nullptr)
       ++best_bid_idx_;
+  } else {
+    while (best_ask_idx_ < static_cast<int32_t>(RANGE_) &&
+           asks_[best_ask_idx_] == nullptr)
+      ++best_ask_idx_;
   }
 }
 
@@ -297,6 +297,11 @@ inline void Orderbook::calculate_voi() {
   prev_best_ask_ = ask_price;
   prev_best_bid_volume_ = bid_vol;
   prev_best_ask_volume_ = ask_vol;
+  std::cout << voi_ << std::endl;
+  std::cout << prev_best_bid_ << std::endl;
+  std::cout << prev_best_ask_ << std::endl;
+  std::cout << prev_best_ask_volume_ << std::endl;
+  std::cout << prev_best_bid_volume_ << std::endl;
 }
 
 inline void Orderbook::calculate_voi_curr() {
@@ -344,7 +349,7 @@ inline void Orderbook::print_top_levels(std::size_t depth) const {
 
   for (std::size_t printed = 0; printed < depth; ++printed) {
     const Limit *bid = nullptr;
-    while (bid_idx < RANGE_ && !(bid = bids_[bid_idx])) {
+    while (bid_idx < RANGE_ && !((bid = bids_[bid_idx]))) {
       ++bid_idx;
     }
 

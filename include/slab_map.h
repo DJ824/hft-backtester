@@ -35,7 +35,7 @@ private:
   uint64_t base_id_ = 0;
   size_t base_page_ = 0;
 
-  inline Page *acquire_page() {
+  Page *acquire_page() {
     if (!free_pages_.empty()) {
       Page *p = free_pages_.back();
       free_pages_.pop_back();
@@ -44,7 +44,7 @@ private:
     return alloc_page();
   }
 
-  inline Order **slot_ptr(uint64_t id) {
+  Order **slot_ptr(uint64_t id) {
     if (pages_.empty()) {
       base_id_ = id & ~PAGE_MASK;
       base_page_ = (base_id_ >> PAGE_SHIFT);
@@ -89,9 +89,9 @@ public:
   PageMap(const PageMap &) = delete;
   PageMap &operator=(const PageMap &) = delete;
 
-  inline void insert(uint64_t id, Order *ptr) { *slot_ptr(id) = ptr; }
-  inline void erase(uint64_t id) { *slot_ptr(id) = nullptr; }
-  inline Order *find(uint64_t id) { return *slot_ptr(id); }
+  void insert(uint64_t id, Order *ptr) { *slot_ptr(id) = ptr; }
+  void erase(uint64_t id) { *slot_ptr(id) = nullptr; }
+  Order *find(uint64_t id) { return *slot_ptr(id); }
 
   void clear() {
     for (Page *p : pages_)

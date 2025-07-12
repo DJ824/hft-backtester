@@ -93,7 +93,7 @@ private:
         buff_[write] = ord;
         ord->queue_idx_ = write;
       }
-      write = (write + 1) & mask;
+      write = (write + 1) & mask_;
     }
     head_ = 0;
     tail_ = write;

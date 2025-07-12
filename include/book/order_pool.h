@@ -51,6 +51,7 @@ public:
 
   void return_order(Order *order) {
     order->next_ = freelist_;
+    order->prev_ = nullptr;
     freelist_ = order;
   }
 
